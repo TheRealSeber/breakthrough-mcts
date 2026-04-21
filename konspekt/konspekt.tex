@@ -1,0 +1,306 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setdefaultlanguage{polish}
+
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{enumitem}
+
+\addbibresource{bibliography.bib}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+\title{Zastosowanie MCTS/UCT do gry Breakthrough 6$\times$6 \\
+       \large Konspekt projektu --- MSI, semestr letni 2025/26}
+\author{Sebastian Rydzewski, Hubert [Nazwisko]}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Opis problemu}
+
+\paragraph{Gra Breakthrough.}
+Breakthrough to dwuosobowa gra strategiczna z pełną informacją, wynaleziona
+przez Dana Trokę w 2000 roku (zwycięzca konkursu 8x8 Game Design Competition).
+Plansza jest prostokątna; każdy gracz dysponuje pionkami ustawionymi w dwóch
+pierwszych rzędach po swojej stronie. Ruch pionka odbywa się o jedno pole do
+przodu --- prosto lub po skosie. Ruch prosty jest możliwy wyłącznie na puste
+pole; ruch po skosie może być wykonany na pole puste lub zajęte przez pionek
+przeciwnika (bicie). Bicie prosto jest niedozwolone, a pionki nie mogą się
+cofać. Gra kończy się zwycięstwem gracza, który: (a) doprowadzi pionek do
+ostatniego rzędu przeciwnika, (b) zbije wszystkie pionki przeciwnika, lub
+(c) uniemożliwi przeciwnikowi wykonanie jakiegokolwiek legalnego ruchu.
+W klasycznych regułach nie występują remisy.
+
+\paragraph{Dlaczego Breakthrough jako benchmark MCTS.}
+Gra spełnia wszystkie wymagania projektu:
+\begin{itemize}[nosep]
+    \item \textbf{Dwuosobowa, z pełną informacją, deterministyczna} ---
+          kluczowe właściwości dla metod MCTS/UCT bez rozszerzeń probabilistycznych.
+    \item \textbf{Umiarkowany branching factor} --- w typowej pozycji liczba
+          legalnych ruchów wynosi 10--20. Głębokość partii na planszy 6$\times$6
+          to 20--40 półruchów.
+    \item \textbf{Niebanalna strategicznie} --- mimo prostych zasad wymaga planowania
+          na wiele ruchów naprzód (tworzenie łańcuchów pionków, kontrola kolumn,
+          poświęcenia dla osiągnięcia przełomu).
+    \item \textbf{Niszowa poza środowiskiem badawczym} --- w odróżnieniu od
+          szachów czy Go nie istnieją silne silniki oparte o sieci neuronowe,
+          co czyni ją atrakcyjnym polem dla porównań klasycznych wariantów MCTS.
+    \item \textbf{Wariant 6$\times$6 nie został rozwiązany} --- Lorentz rozwiązał
+          warianty do planszy 5$\times$5 \cite{saffidine2011solving}, ale 6$\times$6
+          pozostaje otwarty, co zostawia miejsce na eksperymenty porównawcze bez
+          znanego ,,perfekcyjnego gracza'' ustawiającego sufit jakości.
+\end{itemize}
+
+\paragraph{Modyfikacja reguł: plansza 6$\times$6.}
+Zdecydowaliśmy się na wariant 6$\times$6 zamiast klasycznej 8$\times$8 z trzech powodów.
+Po pierwsze, mniejsza plansza pozwala na większą liczbę iteracji MCTS w tym samym
+budżecie czasowym --- co jest istotne przy wymogu minimum 30 partii na konfigurację
+i 4 hipotezach do zweryfikowania. Po drugie, 6$\times$6 zachowuje charakter strategiczny
+gry (branching factor $\sim$10--20 pozostaje w przedziale przyjaznym MCTS), jednocześnie
+umożliwiając reprezentację planszy w~pojedynczym bitboardzie \texttt{u64} (36 pól),
+co upraszcza implementację generatora ruchów. Po trzecie, 6$\times$6 nie jest rozwiązany,
+co oznacza że porównanie wariantów MCTS ma realną wartość badawczą.
+
+\section{Wstępny przegląd literatury}
+
+Metoda Monte Carlo Tree Search została zaproponowana przez
+Coulom~\cite{coulom2006efficient} jako algorytm przeszukiwania dla gry Go.
+W tym samym roku Kocsis i Szepesvári~\cite{kocsis2006bandit} opublikowali
+algorytm UCT (Upper Confidence Bounds applied to Trees), łączący klasyczne
+MCTS z regułą wyboru UCB1 znaną z teorii bandytów. Kompleksowy przegląd
+metody i jej wariantów przedstawili Browne et al.~\cite{browne2012survey}
+--- jest to główny punkt odniesienia metodologicznego dla niniejszego projektu.
+
+\paragraph{RAVE i AMAF.}
+Gelly i Silver~\cite{gelly2011monte} wprowadzili algorytm RAVE (Rapid Action
+Value Estimation), rozszerzający UCT o dodatkowe statystyki AMAF (All-Moves-As-First).
+Kluczowa intuicja: jeśli ruch $m$ okazywał się dobry w symulacjach wychodzących
+z potomków węzła $n$, to $m$ jest również prawdopodobnie dobry z samego $n$.
+RAVE wyraźnie przyspiesza zbieżność UCT w grach, w~których te same ruchy pojawiają
+się w różnych kontekstach --- co ma miejsce w Breakthrough (pionek na kolumnie $c$
+może zostać zagrany na tym samym polu w różnych partiach drzewa).
+
+\paragraph{Progressive Bias.}
+Chaslot et al.~\cite{chaslot2008progressive} zaproponowali rodzinę technik
+``Progressive Strategies'', z których jedna --- Progressive Bias --- wstrzykuje
+domenową heurystykę do fazy selekcji MCTS. Wartość heurystyki
+$H(m)$ dodawana jest do klasycznej formuły UCB1 z wagą malejącą wraz z~liczbą
+odwiedzin węzła: $H(m)/(n+1)$. Technika łączy silne strony czystego MCTS
+(zbieżność do optimum) z szybkim startem heurystyki (dobre ruchy w pierwszych
+iteracjach).
+
+\paragraph{Heurystyki specjalistyczne dla Breakthrough.}
+Lorentz~\cite{lorentz2011breakthrough} opisał techniki ewaluacji pozycji dla
+Breakthrough, w szczególności wartościowanie zaawansowania pionków, bezpieczeństwa
+na krawędziach oraz mobilności. Jego praca ,,Early Playout Termination in MCTS''
+\cite{lorentz2016early} pokazuje że rozsądna heurystyka potrafi być konkurencyjna
+z MCTS o niskim budżecie iteracji.
+
+\paragraph{Pierwszy gracz a rozmiar planszy.}
+Saffidine et al.~\cite{saffidine2011solving} rozwiązali Breakthrough dla planszy
+5$\times$5 i~wykazali że białe (pierwszy gracz) wygrywają przy perfekcyjnej grze.
+Hipotetyczna przewaga pierwszego gracza w Breakthrough jest przedmiotem dyskusji
+w społeczności AI, ale brakuje systematycznych eksperymentów empirycznych dla
+średnich wariantów (6$\times$6, 6$\times$8, 8$\times$8).
+
+Wszystkie cytowane publikacje są recenzowane (konferencje AIIDE, Computer Games,
+IEEE Transactions on Games). Zgodnie z wymaganiem projektu unikamy blogów
+i niezrecenzowanych preprintów.
+
+\section{Hipotezy badawcze}
+
+Zgodnie z wymaganiami projektu stawiamy cztery hipotezy. Pierwsza dotyczy
+rozszerzenia UCT z literatury, druga --- drugiego wariantu metodologicznie
+różnego od pierwszego, trzecia --- specjalistycznej heurystyki, czwarta ---
+własnej hipotezy związanej z zasadami gry.
+
+\paragraph{H1 --- RAVE poprawia jakość gry względem vanilla UCT.}
+Hipotezujemy, że UCT wzbogacone o RAVE osiąga istotnie statystycznie wyższy
+odsetek wygranych niż vanilla UCT przy tym samym budżecie iteracji.
+\emph{Oczekiwany kierunek:} poprawa rzędu 5--15 punktów procentowych przy
+budżecie 1000--10000 iteracji, malejąca z~budżetem (przy bardzo wysokim
+budżecie UCT samo zbiega do dobrego rozwiązania).
+
+\paragraph{H2 --- Progressive Bias poprawia jakość gry względem vanilla UCT.}
+Hipotezujemy, że UCT z Progressive Bias (wykorzystujące tę samą heurystykę
+co gracz H3) osiąga istotnie wyższy odsetek wygranych niż vanilla UCT przy
+tym samym budżecie iteracji. Wybraliśmy Progressive Bias zamiast alternatyw
+(MAST, decisive moves) ze względu na: (a) solidne oparcie w literaturze,
+(b) metodologiczne rozróżnienie od RAVE --- PB wprowadza wiedzę domenową
+do selekcji, RAVE wyłącznie statystyki ze symulacji, (c) naturalne
+powiązanie z H3: ta sama funkcja heurystyczna zostanie użyta w dwóch
+eksperymentach, co pozwoli na spójną analizę.
+
+\paragraph{H3 --- Specjalistyczna heurystyka pokonuje MCTS przy niskim budżecie.}
+Hipotezujemy, że gracz oparty na minimaxie alfa-beta głębokości 5 z funkcją
+ewaluacji łączącą zaawansowanie pionków, materiał, zagrożenia i mobilność,
+wygrywa z~vanilla UCT przy niskich budżetach iteracji ($\leq$ 5000), ale przegrywa
+przy wysokich budżetach ($\geq$ 50000). Oczekujemy zatem istnienia ,,punktu krzyżowania''
+(cross-over) na krzywej win-rate vs budżet iteracji. Wynik potwierdzający pokaże
+klasyczny trade-off: wiedza domenowa jest wartościowa przy ograniczonych zasobach,
+ale MCTS dominuje przy wystarczającej mocy obliczeniowej.
+
+\paragraph{H4 --- Przewaga pierwszego gracza maleje ze wzrostem rozmiaru planszy.}
+Hipotezujemy, że białe (pierwszy gracz) mają istotnie statystyczną przewagę
+w Breakthrough 6$\times$6 przy równej sile agentów MCTS, i że ta przewaga maleje
+w kierunku 8$\times$8. Konkretnie: dla turnieju UCT 5000 iter vs UCT 5000 iter,
+win rate białych będzie wyraźnie powyżej 50\% dla 6$\times$6, zbliżać się do 50\%
+dla 6$\times$8, i być jeszcze bliższy 50\% dla 8$\times$8. Hipoteza jest motywowana
+obserwacją że na mniejszej planszy pierwszy ruch daje bezpośrednią przewagę
+tempa, podczas gdy większa plansza rozcieńcza efekt pierwszego ruchu.
+
+\section{Sposób weryfikacji hipotez}
+
+\paragraph{Eksperymenty.}
+Każda hipoteza będzie testowana w oddzielnej serii turniejów:
+\begin{itemize}[nosep]
+    \item \textbf{H1:} round-robin RAVE vs UCT dla budżetów
+          $\{1000, 5000, 10000, 50000\}$ iteracji.
+    \item \textbf{H2:} round-robin Progressive Bias vs UCT dla tych samych budżetów.
+    \item \textbf{H3:} round-robin gracz heurystyczny (głębokość 5) vs UCT
+          dla budżetów $\{200, 500, 1000, 5000, 10000, 50000\}$.
+    \item \textbf{H4:} UCT 5000 iter vs UCT 5000 iter dla trzech rozmiarów planszy:
+          6$\times$6, 6$\times$8, 8$\times$8.
+\end{itemize}
+
+\paragraph{Metodologia statystyczna.}
+Dla każdej pary konfiguracji rozegramy minimum 60 partii (30 z~każdą stroną jako
+białe). W H4 zwiększamy do 100 partii na konfigurację ze względu na skupienie
+hipotezy na przewadze tempa. Z~wyników wyliczamy:
+\begin{itemize}[nosep]
+    \item Win rate z 95\% przedziałem ufności Wilsona (preferowany nad Waldem
+          dla proporcji bliskich ekstremom).
+    \item Rozkład długości partii (mediana, IQR, boxplot).
+    \item Średni czas na ruch dla każdego agenta.
+\end{itemize}
+Uznamy hipotezę za potwierdzoną statystycznie jeśli 95\% CI win rate nie przecina
+50\% w spodziewanym kierunku dla co najmniej trzech testowanych budżetów.
+
+\paragraph{Reprodukowalność.}
+Każde uruchomienie eksperymentu ma jawny master seed podawany z CLI.
+Z master seed deterministycznie wyprowadzamy seedy indywidualnych partii
+($\texttt{seed}_i = \text{hash}(\text{master}, \text{game\_id})$), dzięki czemu
+każda partia jest niezależnie reprodukowalna. Każda partia loguje swój seed,
+konfigurację, wynik, długość i czasy do~pliku JSONL (format crash-safe, append-only,
+umożliwia wznowienie przerwanego eksperymentu).
+
+\paragraph{Opracowanie wyników.}
+Zamiast surowych tabel z pojedynczymi wartościami raportujemy:
+\begin{itemize}[nosep]
+    \item Krzywe skalowania win-rate vs budżet iteracji (z zaznaczonymi przedziałami ufności)
+          --- dla H1, H2, H3.
+    \item Boxploty długości partii per konfiguracja.
+    \item Heatmapy win-rate dla H4 (rozmiar planszy $\times$ strona).
+\end{itemize}
+Wszystkie wykresy generowane będą skryptami Pythona (matplotlib + seaborn)
+eksportującymi do PDF do katalogu \texttt{report/figures/}.
+
+\paragraph{Testy z udziałem osób.}
+Zgodnie z wymaganiem projektu, interfejs graficzny (Pygame) zostanie przetestowany
+przez minimum 5 osób. Każda partia człowiek-komputer zostanie zalogowana
+(identyfikator testera, konfiguracja agenta, wszystkie ruchy, wynik).
+Raportowany wynik: liczba partii, rozkład wyników, subiektywna ocena siły agenta.
+
+\section{Harmonogram}
+
+Projekt realizowany od kwietnia do czerwca 2026. Zakładamy 9 tygodni pracy
+z dwutygodniowym buforem na nieprzewidziane problemy.
+
+\begin{center}
+\begin{tabular}{p{4cm}p{10cm}}
+\toprule
+\textbf{Tydzień} & \textbf{Zadanie} \\
+\midrule
+Tydz. 1 & Konspekt (ten dokument), akceptacja prowadzącego \\
+Tydz. 2 & Silnik gry w Ruście + referencyjny w Pythonie + testy cross-validation \\
+Tydz. 3 & Vanilla UCT + testy \\
+Tydz. 4 & RAVE + Progressive Bias \\
+Tydz. 5 & Heurystyczny gracz (alfa-beta głębokość 5) + harness eksperymentów \\
+Tydz. 6 & Uruchomienie eksperymentów H1--H4 (w tle) \\
+Tydz. 7 & GUI + testy z użytkownikami \\
+Tydz. 8 & Analiza wyników + generowanie wykresów \\
+Tydz. 9 & Pisanie raportu + prezentacja \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Ogólny projekt techniczny}
+
+\paragraph{Stos technologiczny.}
+Rdzeń obliczeniowy --- silnik gry, wszystkie warianty MCTS, heurystyka ---
+implementujemy w języku Rust. Orchestracja eksperymentów, interfejs graficzny
+i analiza wyników --- w języku Python 3.12. Wiązanie Rust$\leftrightarrow$Python
+poprzez PyO3 z narzędziem maturin (build). Wybór Rusta motywowany wydajnością
+(MCTS z dużym budżetem iteracji dominuje w czasie obliczeń) i bezpieczeństwem
+pamięci.
+
+\paragraph{Reprezentacja planszy.}
+Dwa bitboardy \texttt{u64} (białe, czarne). Bit $i$ odpowiada polu $i$ przy
+numeracji wiersz-kolumna. Generator ruchów zaimplementowany operacjami bitowymi
+(przesunięcia $\pm$cols, maski krawędzi). Stan gry jest niemutowalny ---
+\texttt{apply(mv)} zwraca nową instancję \texttt{GameState} (ok. 32 bajtów).
+Upraszcza to kod MCTS kosztem drobnych alokacji (akceptowalny narzut przy
+rozmiarze struktury i puli 50\,000 iteracji).
+
+\paragraph{Zrównoleglenie.}
+Kluczowa decyzja metodologiczna: \textbf{MCTS działa sekwencyjnie, zrównoleglenie
+jest wyłącznie na poziomie batchowania eksperymentów}. Każda partia turnieju to
+osobny proces Python (\texttt{ProcessPoolExecutor}). Nie wprowadzamy tree
+parallelization ani root parallelization. Uzasadnienie: czystość metodologiczna
+porównań --- porównujemy warianty algorytmiczne, nie wydajność zrównoleglenia.
+Budżet MCTS mierzony liczbą iteracji pozostaje jednoznaczny.
+
+\paragraph{Reprodukowalność.}
+Generator liczb losowych: \texttt{Xoshiro256PlusPlus} (seedowalny), po jednym
+niezależnym strumieniu na agenta. Seed agenta wyprowadzany z master seed plus
+identyfikatora partii. Wszystkie hiperparametry (stała eksploracji $c$, $k$ w RAVE,
+waga bias w PB, głębokość alfa-bety, wagi ewaluacji) konfigurowalne
+z linii poleceń, nie hardkodowane.
+
+\paragraph{Struktura repozytorium.}
+\begin{verbatim}
+breakthrough-mcts/
+  Cargo.toml, pyproject.toml       # build
+  src/                              # Rust
+    game.rs                         # bitboardy, ruchy, terminale
+    mcts/{uct,rave,progressive_bias}.rs
+    heuristic.rs                    # alfa-beta
+  python/breakthrough/              # Python
+    reference_game.py               # czytelna implementacja do walidacji
+    gui.py                          # Pygame
+    experiments/{harness,run_h1..h4}.py
+  tests/test_rust_vs_python.py      # cross-validation (wymagany gate)
+  notebooks/                        # skrypty analityczne
+  report/                           # raport LaTeX
+  konspekt/                         # ten dokument
+  results/                          # JSONL (w .gitignore)
+\end{verbatim}
+
+\paragraph{Walidacja poprawności silnika.}
+Przed rozpoczęciem eksperymentów uruchamiamy test cross-validation:
+1000 losowych partii rozegranych równolegle przez silnik Rust i Python ---
+muszą generować identyczne zbiory legalnych ruchów, stany terminalne i zwycięzców
+w każdym kroku. Niepoprawny silnik unieważnia wszystkie wyniki eksperymentalne.
+
+\paragraph{Użycie LLM.}
+Kod generowany przy współpracy z Claude Opus 4.7 --- każdy wygenerowany fragment
+podlega review autorów. W raporcie końcowym zamieścimy szczegółową sekcję
+dokumentującą sposób użycia LLM (konkretne promptty, wykryte błędy w wygenerowanym
+kodzie, poprawki wprowadzone manualnie).
+
+\printbibliography
+
+\end{document}
