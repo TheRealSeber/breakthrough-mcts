@@ -1,0 +1,30 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "breakthrough"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "pygame>=2.5",
+    "numpy>=1.26",
+    "pandas>=2.0",
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+    "tqdm>=4.66",
+    "typer>=0.12",
+]
+
+[tool.maturin]
+python-source = "python"
+module-name = "breakthrough.breakthrough_core"
+features = ["pyo3/extension-module"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+timeout = 120
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
