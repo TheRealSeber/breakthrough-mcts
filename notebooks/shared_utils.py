@@ -35,7 +35,12 @@ def wilson_ci(wins: int, n: int, alpha: float = 0.05) -> tuple[float, float, flo
     denom = 1 + z * z / n
     center = (p + z * z / (2 * n)) / denom
     margin = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denom
-    return p, max(0.0, center - margin), min(1.0, center + margin)
+    # Wilson CI center is shifted from p toward 0.5; for extreme p (e.g. all-wins
+    # or all-losses) the CI can clamp to a value past p. Ensure low <= p <= high
+    # so error bars relative to p are always non-negative.
+    low = min(p, max(0.0, center - margin))
+    high = max(p, min(1.0, center + margin))
+    return p, low, high
 
 
 def save_fig(name: str):
