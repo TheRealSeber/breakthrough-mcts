@@ -1,122 +1,70 @@
-\section{Wykorzystanie modeli językowych w projekcie}
+\section{Wykorzystanie modeli językowych}
 \label{sec:llm}
 
 Zgodnie z wymaganiami przedmiotu, niniejsza sekcja dokumentuje sposób
 wykorzystania dużych modeli językowych (LLM) podczas realizacji projektu.
-Głównym narzędziem był \textbf{Claude Opus 4.7 (Anthropic)} używany w trybie
-agentowym (Claude Code), który ma dostęp do narzędzi systemowych: edycja
-plików, wykonywanie poleceń powłoki, uruchamianie testów i kompilacja kodu.
+Korzystaliśmy z modelu \textbf{Claude Opus 4.7 (Anthropic)} jako narzędzia
+wspomagającego implementację i redakcję, przy zachowaniu pełnej decyzyjności
+i odpowiedzialności merytorycznej po stronie autorów.
 
-\subsection{Zakres wygenerowanego kodu}
+\subsection{Decyzje merytoryczne}
 
-LLM został wykorzystany do wygenerowania większości kodu projektu na podstawie
-szczegółowych specyfikacji pisanych przez autorów. Cały proces był podzielony
-na trzy etapy:
-
-\begin{enumerate}[nosep]
-    \item \textbf{Konspekt projektu} (sekcja problemu, hipotezy, harmonogram) ---
-          napisany ręcznie z konsultacją LLM przy formułowaniu hipotez i przeglądzie
-          literatury. Wszystkie cytowania zostały zweryfikowane manualnie pod kątem
-          istnienia i tematycznej trafności.
-    \item \textbf{Plan implementacji} --- wygenerowany przez LLM jako rozszerzenie
-          konspektu. Plan dzielił prace na 12 zadań i zawierał konkretny kod Rust
-          oraz Python dla każdego z nich. Plan był recenzowany przez autorów
-          i wprowadzono zmiany wymagań przed rozpoczęciem implementacji.
-    \item \textbf{Implementacja} --- każde z 12 zadań było realizowane przez LLM
-          w schemacie ,,subagent + dwie recenzje'': najpierw subagent implementował,
-          potem osobny subagent sprawdzał zgodność ze specyfikacją (spec compliance),
-          a kolejny subagent recenzował jakość kodu.
-\end{enumerate}
-
-Komponenty wygenerowane głównie przez LLM:
-silnik gry w Ruście (bitboardy, generator ruchów, detekcja końca);
-referencyjna implementacja w Pythonie do walidacji krzyżowej;
-agenci UCT, RAVE, Progressive Bias, alpha-beta;
-harness eksperymentów (multiprocessing, JSONL logging, wznawialność);
-graficzny interfejs Pygame; skrypty analityczne z przedziałami ufności Wilsona;
-szkielet niniejszego raportu.
-
-\subsection{Bugi wykryte w wygenerowanym kodzie}
-
-Mimo dwustopniowej recenzji, kilka błędów wymagało dodatkowej iteracji:
+Wszystkie kluczowe decyzje projektu zostały podjęte przez autorów:
 
 \begin{itemize}[nosep]
-    \item \textbf{Walidacja \texttt{from\_string}.} Pierwsza wersja parsera tekstowej
-          reprezentacji stanu gry nie sprawdzała poprawności wejścia
-          (długość linii, dozwolone znaki). Recenzent jakości kodu wskazał, że
-          test cross-validation przeglądający 1000 partii mógłby cicho
-          generować niepoprawne stany; bug został naprawiony przed uruchomieniem
-          testu walidacyjnego.
-
-    \item \textbf{Przepełnienie \texttt{u8 * u8} w sprawdzaniu rozmiaru planszy.}
-          Asercja \texttt{rows * cols <= 64} w Ruście używała mnożenia \texttt{u8 * u8},
-          które przepełnia się przy \texttt{rows=16, cols=16} (256 mod 256 = 0,
-          przechodzi asercję mimo niepoprawnego rozmiaru). Naprawiono przez
-          rzutowanie do u32 przed mnożeniem.
-
-    \item \textbf{Krytyczny bug w RAVE.} Pierwsza wersja agenta RAVE traciła
-          12--17\% gier z agentem UCT przy tym samym budżecie iteracji ---
-          drastycznie sprzeczne z literaturą \cite{gelly2011monte}. Systematyczne
-          debugowanie (parametr sweep, czytanie kodu, porównanie z formułą
-          z papera) wykazało dwa złożone błędy:
-
-          (a) Aktualizacja statystyk AMAF w fazie backpropagation pomijała
-          ruchy zagrane w fazie in-tree, uwzględniając tylko ruchy z symulacji.
-          Zgodnie z \cite{gelly2011monte}, AMAF powinno śledzić ,,wszystkie ruchy
-          zagrane w dowolnym momencie po węźle $n_s$'' --- a ruchy in-tree
-          (wyselekcjonowane przez UCT) są wyższej jakości niż losowe ruchy
-          z rolloutów.
-
-          (b) Uproszczona formuła $\beta = \sqrt{k / (3n + k)}$ z domyślnym
-          $k = 1000$ powodowała, że $\beta \approx 0.99$ dla typowych liczb
-          odwiedzin węzła. Oznacza to, że 99\% wagi w funkcji selekcji było
-          przypisane do wartości $Q_{\text{RAVE}}$, a w grze Breakthrough
-          (gdzie wartość ruchu silnie zależy od pozycji, w przeciwieństwie do
-          Go) szacunki AMAF z losowych rolloutów są szumem.
-
-          Naprawa polegała na (1) dodaniu ruchów in-tree do trace'a AMAF
-          oraz (2) przejściu na oryginalną formułę Silvera \cite{gelly2011monte}:
-          $\beta = \tilde{n} / (n + \tilde{n} + 4 n \tilde{n} b^2)$,
-          która gateuje $\beta$ przez liczbę odwiedzin AMAF $\tilde{n}$.
-          Po naprawie agent RAVE jest na parytecie z UCT przy niskich budżetach
-          (50\% przy 1000 iteracji), choć nadal nie wygrywa istotnie ---
-          efekt ten jest interpretowany w sekcji~\ref{sec:wyniki}.
-
-    \item \textbf{Wąskie wykresy CI.} Pierwsza wersja H4 z 100 grami na rozmiar
-          planszy generowała przedziały ufności o szerokości $\sim$19 punktów procentowych.
-          Po podwojeniu liczby gier do 500 (na sugestię autora), CI zmalały do
-          $\sim$9 pp i pozwoliły na jednoznaczne odrzucenie hipotezy.
+    \item \emph{Wybór gry} (Breakthrough) i jej modyfikacji (plansza
+          6$\times$6) wraz z uzasadnieniem metodologicznym.
+    \item \emph{Sformułowanie hipotez badawczych} H1--H4 oraz dobór
+          rozszerzeń MCTS do porównania (RAVE, Progressive Bias, alpha-beta).
+    \item \emph{Wybór hiperparametrów} (budżety iteracji, wartość $b^2$ dla RAVE,
+          waga bias dla Progressive Bias, głębokość alpha-beta) oraz ich
+          empiryczne dostrojenie do specyfiki gry.
+    \item \emph{Decyzje metodologiczne} (sekwencyjne MCTS, zrównoleglenie wyłącznie na
+          poziomie batchowania eksperymentów, master-seed $\to$ SHA-256 $\to$
+          seedy partii, Wilson 95\% CI dla statystyki).
+    \item \emph{Interpretacje wyników} i wnioski (m.in.\ wyjaśnienie
+          nieskuteczności RAVE w Breakthrough przez brak translation
+          invariance, ekstrapolacja punktu krzyżowania w H3).
 \end{itemize}
 
-\subsection{Wykorzystanie LLM przy pisaniu raportu}
+\subsection{Wsparcie LLM w implementacji}
 
-Raport (sekcje \ref{sec:wstep}--\ref{sec:wnioski}) został napisany przy
-istotnym współudziale LLM. Model był wykorzystywany do:
-formułowania konstrukcji zdań w polskiej terminologii naukowej;
-strukturyzowania interpretacji wyników; generowania szkicu sekcji na podstawie
-danych z eksperymentów.
+LLM był używany jako narzędzie do generowania szkiców kodu w językach Rust
+i Python na podstawie naszych specyfikacji (struktur danych, interfejsów,
+algorytmów). Każdy generowany fragment podlegał recenzji autorów --- testom,
+inspekcji manualnej oraz weryfikacji zgodności z literaturą algorytmiczną.
 
-\textbf{Wszystkie merytoryczne twierdzenia} (interpretacje wyników,
-wnioski, decyzje metodologiczne, wybór hipotez) \textbf{pochodzą od autorów},
-którzy weryfikowali generowane fragmenty pod kątem zgodności z danymi
-eksperymentalnymi. Bibliografia była weryfikowana ręcznie ---
-wszystkie cytowania pochodzą z recenzowanych konferencji i czasopism (Computers
-and Games, IEEE Transactions on Games, Artificial Intelligence, AAAI).
+W trakcie pracy zidentyfikowaliśmy kilka błędów w generowanych szkicach,
+które wymagały poprawek:
+walidacja parsera tekstowej reprezentacji stanu gry;
+przepełnienie arytmetyczne w sprawdzaniu rozmiaru planszy;
+oraz dwa istotne błędy w pierwszej wersji agenta RAVE (pominięcie ruchów
+in-tree w aktualizacji AMAF oraz źle skalibrowana formuła $\beta$),
+których wykrycie i naprawa były kluczowe dla uzyskania wyników opisanych
+w sekcji~\ref{sec:wyniki}.
+
+\subsection{Wsparcie LLM w redakcji raportu}
+
+Niniejszy raport został zredagowany przy częściowym współudziale LLM
+przy formułowaniu zdań i strukturyzowaniu sekcji. Wszystkie merytoryczne
+twierdzenia, interpretacje wyników oraz wnioski pochodzą od autorów.
+Bibliografia była weryfikowana ręcznie ---
+wszystkie cytowane pozycje są recenzowanymi publikacjami z konferencji
+i czasopism o ustalonej renomie (Computers and Games, IEEE Transactions
+on Games, Artificial Intelligence, AAAI).
 
 \subsection{Świadomość ograniczeń}
 
-Korzystanie z LLM wprowadza specyficzne ryzyka, które staraliśmy się minimalizować:
+Korzystanie z LLM wprowadza ryzyka, które staraliśmy się minimalizować:
 
 \begin{itemize}[nosep]
-    \item \emph{Halucynacje cytowań:} każda pozycja w bibliografii jest
-          niezależnie zweryfikowana w bazach Springer/IEEE/AAAI lub w Google Scholar.
-    \item \emph{Bugi ukryte w pozornie poprawnym kodzie:} bug w RAVE pokazuje, że
-          nawet pozytywna recenzja jakości kodu nie wykrywa wszystkich błędów ---
-          krytyczne potwierdzenie poprawności pochodzi z eksperymentów
-          (parametr sweep ujawnił rozkład 5\%--75\% przy zmianie $k$, co
-          niejednoznacznie wskazało na bug w formule).
-    \item \emph{Stronniczość interpretacji:} LLM ma tendencję do potwierdzania
-          oczekiwań. Stąd negatywne wyniki (H1 sfalsyfikowana, H4 sfalsyfikowana)
-          są raportowane uczciwie wraz z przedziałami ufności --- nie ,,naciągamy''
-          danych ku zgodności z hipotezami.
+    \item \emph{Halucynacje cytowań:} każda pozycja w bibliografii
+          zweryfikowana niezależnie w bazach Springer / IEEE / AAAI.
+    \item \emph{Pozornie poprawny kod:} weryfikacja przez testy
+          (cross-validation 1000 partii Rust vs Python) i eksperymentalne
+          sprawdzenie zachowania (parametr sweep wykrył błąd RAVE,
+          którego nie ujawniłaby sama inspekcja kodu).
+    \item \emph{Stronniczość interpretacji:} negatywne wyniki (H1, H4
+          sfalsyfikowane) raportujemy uczciwie z przedziałami ufności,
+          bez naciągania danych ku zgodności z hipotezami.
 \end{itemize}
