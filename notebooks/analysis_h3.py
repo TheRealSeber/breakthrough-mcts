@@ -7,12 +7,19 @@ from shared_utils import load_games, wilson_ci, save_fig
 import matplotlib.pyplot as plt
 
 GAMES = Path("results/h3_heuristic_vs_uct/games.jsonl")
-if not GAMES.exists():
-    print(f"No data at {GAMES}; run experiments/run_h3.py first.")
-    sys.exit(0)
+GAMES_EXT = Path("results/h3_heuristic_vs_uct_extended/games.jsonl")
 
-df = load_games(GAMES)
-print(f"Loaded {len(df)} games")
+import pandas as pd
+dfs = []
+if GAMES.exists():
+    dfs.append(load_games(GAMES))
+if GAMES_EXT.exists():
+    dfs.append(load_games(GAMES_EXT))
+if not dfs:
+    print(f"No data at {GAMES} or {GAMES_EXT}; run experiments/run_h3.py first.")
+    sys.exit(0)
+df = pd.concat(dfs, ignore_index=True)
+print(f"Loaded {len(df)} games (combined main + extended)")
 
 # For each UCT iteration budget, compute heuristic's win rate vs that UCT config
 iters_set = set()

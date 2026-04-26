@@ -11,7 +11,7 @@ if __name__ == "__main__":
         exp = Experiment(
             name=f"h4_first_player_{rows}x{cols}",
             agents=agents,
-            n_games_per_pair=100,
+            n_games_per_pair=500,
             master_seed=45,
             output_dir=Path("results"),
             board_rows=rows,
