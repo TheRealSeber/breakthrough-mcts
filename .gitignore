@@ -209,5 +209,8 @@ __marimo__/
 # Rust / Cargo build artifacts
 /target/
 
+# Local cargo config (machine-specific rpath etc.)
+.cargo/
+
 # Experiment outputs
 results/
