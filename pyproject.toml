@@ -12,6 +12,7 @@ dependencies = [
     "pandas>=2.0",
     "matplotlib>=3.8",
     "seaborn>=0.13",
+    "scipy>=1.11",
     "tqdm>=4.66",
     "typer>=0.12",
 ]
