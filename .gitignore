@@ -214,3 +214,30 @@ __marimo__/
 
 # Experiment outputs
 results/
+
+# LaTeX build artifacts
+report/main.aux
+report/main.bbl
+report/main.bcf
+report/main.blg
+report/main.fdb_latexmk
+report/main.fls
+report/main.log
+report/main.out
+report/main.run.xml
+report/main.toc
+report/main.xdv
+report/main.pdf
+report/xelatex*.fls
+konspekt/konspekt.aux
+konspekt/konspekt.bbl
+konspekt/konspekt.bcf
+konspekt/konspekt.blg
+konspekt/konspekt.fdb_latexmk
+konspekt/konspekt.fls
+konspekt/konspekt.log
+konspekt/konspekt.out
+konspekt/konspekt.run.xml
+konspekt/konspekt.toc
+konspekt/konspekt.xdv
+konspekt/konspekt.pdf
