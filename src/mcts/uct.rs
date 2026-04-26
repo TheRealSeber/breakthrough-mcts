@@ -119,17 +119,20 @@ impl UctAgent {
                         break;
                     }
                     // Fully expanded non-terminal: pick best child by UCB1
-                    let log_n = (pool[idx].visits as f64).ln();
-                    let c = self.c;
-                    let children = pool[idx].children.clone();
-                    let best = *children
-                        .iter()
-                        .max_by(|&&a, &&b| {
-                            ucb1(&pool[a], log_n, c)
-                                .partial_cmp(&ucb1(&pool[b], log_n, c))
-                                .unwrap_or(std::cmp::Ordering::Equal)
-                        })
-                        .unwrap();
+                    let best = {
+                        let parent = &pool[idx];
+                        let log_n = (parent.visits as f64).ln();
+                        let c = self.c;
+                        *parent
+                            .children
+                            .iter()
+                            .max_by(|&&a, &&b| {
+                                ucb1(&pool[a], log_n, c)
+                                    .partial_cmp(&ucb1(&pool[b], log_n, c))
+                                    .unwrap_or(std::cmp::Ordering::Equal)
+                            })
+                            .unwrap()
+                    };
                     let mv = pool[best].last_move.unwrap();
                     s = s.apply_raw(mv.0, mv.1);
                     idx = best;
