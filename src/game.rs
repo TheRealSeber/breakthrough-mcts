@@ -1,3 +1,4 @@
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use rand::RngCore;
 use rand::SeedableRng;
@@ -136,7 +137,7 @@ impl GameState {
     #[new]
     #[pyo3(signature = (rows=6, cols=6))]
     pub fn new(rows: u8, cols: u8) -> Self {
-        assert!(rows * cols <= 64, "board too large for u64 bitboard");
+        assert!((rows as u32) * (cols as u32) <= 64, "board too large for u64 bitboard");
         let (left_edge, right_edge, board_mask, top_row, bot_row) = Self::make_masks(rows, cols);
         let zobrist = Self::make_zobrist(rows, cols);
 
@@ -210,17 +211,48 @@ impl GameState {
         base.white = 0;
         base.black = 0;
         let lines: Vec<&str> = s.lines().collect();
+        if lines.len() != (rows as usize) + 1 {
+            return Err(PyValueError::new_err(format!(
+                "expected {} lines (got {})",
+                (rows as usize) + 1,
+                lines.len()
+            )));
+        }
         for (r, line) in lines[..rows as usize].iter().enumerate() {
+            if line.chars().count() != cols as usize {
+                return Err(PyValueError::new_err(format!(
+                    "row {} has length {} (expected {})",
+                    r,
+                    line.chars().count(),
+                    cols
+                )));
+            }
             for (c, ch) in line.chars().enumerate() {
                 let sq = (r as u8) * cols + (c as u8);
                 match ch {
                     'W' => base.white |= 1u64 << sq,
                     'B' => base.black |= 1u64 << sq,
-                    _ => {}
+                    '.' => {}
+                    other => {
+                        return Err(PyValueError::new_err(format!(
+                            "invalid character {:?} at row {} col {} (expected 'W', 'B', or '.')",
+                            other, r, c
+                        )));
+                    }
                 }
             }
         }
-        base.white_to_move = lines.last().map(|l| *l == "W").unwrap_or(true);
+        let marker = lines[rows as usize];
+        base.white_to_move = match marker {
+            "W" => true,
+            "B" => false,
+            other => {
+                return Err(PyValueError::new_err(format!(
+                    "invalid side-to-move marker {:?} (expected \"W\" or \"B\")",
+                    other
+                )));
+            }
+        };
         let n = (rows * cols) as usize;
         base.hash = Self::compute_hash(base.white, base.black, &base.zobrist, n);
         Ok(base)
@@ -288,6 +320,23 @@ mod tests {
         let g2 = g.apply_raw(14, 21);
         assert_eq!(g2.white & (1u64 << 21), 1u64 << 21, "white should be at sq 21");
         assert_eq!(g2.black, 0, "black piece should be captured");
+    }
+
+    #[test]
+    fn from_string_rejects_malformed_input() {
+        // Wrong line count
+        assert!(GameState::from_string("WWWWWW\n", 6, 6).is_err());
+        // Wrong row width
+        assert!(GameState::from_string("WWW\nWWWWWW\n......\n......\nBBBBBB\nBBBBBB\nW", 6, 6).is_err());
+        // Bad character
+        assert!(GameState::from_string("WWWWWX\nWWWWWW\n......\n......\nBBBBBB\nBBBBBB\nW", 6, 6).is_err());
+        // Bad side-to-move marker
+        assert!(GameState::from_string("WWWWWW\nWWWWWW\n......\n......\nBBBBBB\nBBBBBB\nx", 6, 6).is_err());
+        // Valid round-trip
+        let g = GameState::new(6, 6);
+        let s = g.to_string();
+        let g2 = GameState::from_string(&s, 6, 6).unwrap();
+        assert_eq!(g.white, g2.white);
     }
 
     #[test]
