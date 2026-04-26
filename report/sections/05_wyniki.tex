@@ -1,0 +1,50 @@
+\section{Wyniki}
+
+% TODO: Włącz wykresy z report/figures/, zinterpretuj. Każda hipoteza dostaje
+% subsection z wykresem + krótkim komentarzem co z niego wynika.
+
+\subsection{H1: RAVE vs UCT}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/h1_rave_vs_uct}
+    \caption{Skalowanie win-rate RAVE i UCT z budżetem iteracji (95\% CI Wilsona).
+    [Komentarz co widać.]}
+    \label{fig:h1}
+\end{figure}
+
+[Interpretacja H1: czy RAVE jest istotnie lepszy? Przy jakim budżecie?]
+
+\subsection{H2: Progressive Bias vs UCT}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/h2_pb_vs_uct}
+    \caption{Skalowanie win-rate Progressive Bias i UCT.}
+    \label{fig:h2}
+\end{figure}
+
+[Interpretacja H2.]
+
+\subsection{H3: Heurystyka vs MCTS --- punkt krzyżowania}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/h3_heuristic_vs_uct}
+    \caption{Win-rate heurystyki (alpha-beta d=5) vs UCT przy rosnącym budżecie iteracji.
+    Oczekiwany cross-over: heurystyka dominuje przy niskim budżecie, MCTS dominuje przy wysokim.}
+    \label{fig:h3}
+\end{figure}
+
+[Interpretacja H3: gdzie jest punkt krzyżowania?]
+
+\subsection{H4: Przewaga pierwszego gracza vs rozmiar planszy}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/h4_first_player_advantage}
+    \caption{Win-rate białych w turniejach UCT vs UCT na różnych rozmiarach planszy.}
+    \label{fig:h4}
+\end{figure}
+
+[Interpretacja H4: czy przewaga maleje z rozmiarem?]

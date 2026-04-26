@@ -1,0 +1,49 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setdefaultlanguage{polish}
+
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\addbibresource{bibliography.bib}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+\title{Zastosowanie MCTS/UCT do gry Breakthrough 6$\times$6 \\
+       \large Raport końcowy --- MSI, semestr letni 2025/26}
+\author{Sebastian Rydzewski, Hubert [Nazwisko]}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\input{sections/00_streszczenie}
+
+\tableofcontents
+\newpage
+
+\input{sections/01_wstep}
+\input{sections/02_literatura}
+\input{sections/03_metoda}
+\input{sections/04_eksperymenty}
+\input{sections/05_wyniki}
+\input{sections/06_wnioski}
+\input{sections/07_llm}
+
+\printbibliography
+
+\end{document}

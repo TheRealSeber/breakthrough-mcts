@@ -1,0 +1,27 @@
+\section{Metoda}
+
+% TODO: Opis algorytmiczny + implementacyjny. Pokryj:
+%  - Reprezentacja gry: bitboardy u64, generator ruchów, terminal detection
+%  - Vanilla UCT: formuła UCB1, 4 fazy MCTS
+%  - RAVE: AMAF, formuła beta, blend UCT+RAVE
+%  - Progressive Bias: H(m) heurystyka, biasem decay /(n+1)
+%  - Heurystyka: alpha-beta d=5, funkcja ewaluacji
+%  - Stos technologiczny: Rust (rdzeń), Python (orkiestracja, GUI), PyO3+maturin
+
+\subsection{Reprezentacja stanu gry}
+[Bitboardy, generator, win conditions.]
+
+\subsection{Vanilla UCT (Kocsis-Szepesvari)}
+[UCB1, 4 fazy.]
+
+\subsection{UCT + RAVE}
+[AMAF, beta blend.]
+
+\subsection{UCT + Progressive Bias}
+[H(m), biasem decay.]
+
+\subsection{Heurystyczny gracz alpha-beta}
+[Funkcja ewaluacji, depth 5.]
+
+\subsection{Architektura implementacji}
+[Rust + PyO3 + Python orchestration.]
