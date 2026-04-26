@@ -10,8 +10,8 @@ use std::sync::Arc;
 pub struct GameState {
     pub white: u64,
     pub black: u64,
-    pub rows: u8,
-    pub cols: u8,
+    #[pyo3(get)] pub rows: u8,
+    #[pyo3(get)] pub cols: u8,
     pub white_to_move: bool,
     pub move_count: u32,
     pub hash: u64,
