@@ -1,20 +1,111 @@
 \section{Przegląd literatury}
+\label{sec:literatura}
 
-% TODO: rozszerzony wzgledem konspektu. Pokryj:
-%  - Coulom 2006 (origin), Kocsis-Szepesvari 2006 (UCB/UCT)
-%  - Browne 2012 survey
-%  - Gelly-Silver 2011 (RAVE/AMAF)
-%  - Chaslot 2008 (Progressive Bias / Progressive Strategies)
-%  - Finnsson-Bjornsson 2008 (MAST, GGP)
-%  - Lorentz 2016 (Early Playout Termination)
-%  - Saffidine 2011 (Breakthrough solved 5x5)
-% Wszystkie cytowane wpisy muszą być w bibliography.bib.
+W niniejszej sekcji przedstawiamy genezę algorytmu Monte Carlo Tree Search,
+najważniejsze rozszerzenia istotne dla tego projektu oraz literaturę
+dotyczącą gry Breakthrough w kontekście MCTS.
 
 \subsection{Geneza MCTS i UCT}
-[Treść.]
 
-\subsection{Rozszerzenia: RAVE, Progressive Bias, MAST}
-[Treść.]
+Metoda Monte Carlo Tree Search została zaproponowana przez Coulom\,a
+\cite{coulom2006efficient} jako algorytm przeszukiwania dla gry Go,
+gdzie wcześniejsze podejścia oparte na alpha-beta nie potrafiły poradzić
+sobie z dużym branching factor (typowo 200--400 ruchów w pozycji).
+Kluczowa innowacja Coulom\,a: zamiast przeszukiwać drzewo gry do pełnej
+głębokości i ewaluować liście funkcją heurystyczną, rozwijano drzewo
+selektywnie i zamiast ewaluacji symulowano losowe partie do końca,
+agregując wyniki w statystykach Monte Carlo per stan.
+
+W tym samym roku Kocsis i Szepesvári~\cite{kocsis2006bandit} wprowadzili
+algorytm UCT (Upper Confidence Bounds applied to Trees), łączący metodę
+Coulom\,a z regułą wyboru z teorii bandytów wieloramiennych. Funkcja
+selekcji UCB1 daje matematycznie ugruntowany kompromis między
+eksploatacją węzłów już dobrze zbadanych a eksploracją mniej odwiedzonych.
+
+Kompleksowy przegląd MCTS i jego wariantów do roku 2012 przedstawili
+Browne et al.~\cite{browne2012survey} ze szczególnym uwzględnieniem
+zastosowań poza Go: gry kart, gry planszowe, planowanie. Praca ta jest
+podstawowym punktem odniesienia metodologicznego dla niniejszego projektu.
+
+\subsection{Rozszerzenia MCTS istotne dla projektu}
+
+\paragraph{RAVE (Rapid Action Value Estimation).}
+Gelly i Silver~\cite{gelly2011monte} wprowadzili technikę RAVE oraz
+powiązane statystyki AMAF (All-Moves-As-First), będące rozszerzeniem
+wcześniejszych prac nad polityką uczenia w grze Go. Główna idea: jeśli
+ruch $m$ okazywał się dobry w rolloutach wychodzących z poddrzewa węzła
+$n$, to $m$ jest również prawdopodobnie dobry z samego $n$, nawet jeśli
+$m$ nie był jeszcze próbowany jako pierwszy. Selekcja RAVE blenduje
+oszacowania UCT i AMAF z wagą $\beta$ malejącą wraz z liczbą odwiedzin
+węzła --- oryginalna formuła $\beta(n, \tilde{n})$ uwzględnia zarówno
+liczbę odwiedzin węzła $n$, jak i liczbę odwiedzin AMAF $\tilde{n}$.
+
+W~grze Go RAVE daje silne przyspieszenie zbieżności --- Gelly i Silver
+raportują 20--40\% wzrost win-rate przy tym samym budżecie iteracji.
+Kluczowe założenie sukcesu: \emph{translation invariance} wartości ruchu ---
+postawienie kamienia w punkcie $(x, y)$ ma podobną wartość w różnych
+kontekstach taktycznych.
+
+\paragraph{Progressive Bias / Progressive Strategies.}
+Chaslot et al.~\cite{chaslot2008progressive} zaproponowali rodzinę
+,,progressive strategies'' wstrzykujących wiedzę domenową do MCTS.
+Centralna z technik --- Progressive Bias --- dodaje do funkcji selekcji
+człon $H(m) / (n + 1)$, gdzie $H(m)$ jest oszacowaniem heurystycznym
+ruchu $m$. Człon ten dominuje wczesne iteracje (gdy $n$ jest małe),
+po czym zanika z rosnącym $n$, oddając kontrolę statystykom UCB1.
+Chaslot pokazał, że taka kombinacja przewyższa zarówno czyste UCT,
+jak i czystą heurystykę, w grze Go i innych domenach.
+
+\paragraph{MAST (Move-Average Sampling Technique).}
+Finnsson i Björnsson~\cite{finnsson2008simulation} w kontekście General Game
+Playing zaproponowali MAST --- globalną tabelę średnich wyników per ruch,
+aktualizowaną po każdej symulacji. Ta tabela następnie wpływa na rolloutsy
+(softmax/$\epsilon$-greedy zamiast uniform random). MAST był rozważany
+jako alternatywna druga modyfikacja UCT (zamiast Progressive Bias),
+ostatecznie odrzucony jako mniej spójny tematycznie z heurystyką H3.
+
+\paragraph{Pozostałe rozszerzenia.}
+Lorentz~\cite{lorentz2016early} opisuje \emph{Early Playout Termination}:
+wczesne kończenie symulacji w stanach o oczywistym zwycięzcy, znacząco
+przyspieszające MCTS w grach z wyraźną strukturą terminalu (jak Breakthrough).
+Inne rozszerzenia warte uwagi (poza zakresem tego projektu): UCT z transposition
+tables, virtual loss dla zrównoleglenia, decisive/anti-decisive moves
+(Teytaud \& Teytaud, AAAI 2010).
 
 \subsection{Breakthrough w literaturze MCTS}
-[Treść.]
+
+\paragraph{Status rozwiązaniowy gry.}
+Saffidine et al.~\cite{saffidine2011solving} opracowali techniki ,,race
+patterns'' i Job-Level Proof Number Search, pozwalające im rozwiązać
+Breakthrough do planszy 5$\times$5 włącznie. Ustalili, że dla planszy 5$\times$5
+przy perfekcyjnej grze \emph{białe wygrywają}. Dla 6$\times$6 i większych
+gra pozostaje nierozwiązana --- nie ma znanego solwera o ograniczonych
+zasobach pamięciowych zdolnego do pełnego przeszukania drzewa, mimo że
+gra jest deterministyczna. To czyni Breakthrough 6$\times$6 atrakcyjnym
+benchmarkiem: nie istnieje wyrocznia ,,perfekcyjnego gracza'' definiująca
+sufit jakości, więc porównanie wariantów MCTS ma realną wartość badawczą.
+
+\paragraph{Heurystyki ewaluacji.}
+Lorentz~\cite{lorentz2011breakthrough} (w pracy nad EinStein würfelt nicht!,
+ale stosowanej również do Breakthrough) opisuje proste heurystyki ewaluacji
+pozycji zawierające zaawansowanie pionków, materiał oraz bezpieczeństwo
+struktury (pionki na krawędziach są bezpieczniejsze, ponieważ mogą zostać
+zbite tylko z jednej strony zamiast dwóch). Te elementy stanowią podstawę
+naszej implementacji \texttt{HeuristicAgent}.
+
+\paragraph{Branching factor i głębokość.}
+W typowej pozycji Breakthrough 6$\times$6 liczba legalnych ruchów wynosi
+około 10--20, a głębokość partii (przy losowej grze) to 30--40 półruchów.
+Z naszych eksperymentów (sekcja~\ref{sec:wyniki}): średnia długość
+partii UCT vs UCT to 33 ruchy dla 6$\times$6, 41 dla 6$\times$8 i 59 dla
+8$\times$8. Branching factor zalicza Breakthrough do gier ,,małych'' z punktu
+widzenia MCTS --- znacznie mniej niż Go (200--400), porównywalnie do Hex
+(odpowiadający rozmiar $11 \times 11$ ma branching ok. 80--100).
+
+\paragraph{Brak literatury na temat MCTS w Breakthrough 6$\times$6.}
+Większość prac dotyczących MCTS w Breakthrough koncentruje się na 8$\times$8
+(klasyczna wersja) lub 5$\times$5 (rozwiązana). Wybór 6$\times$6 jako rozmiaru
+do badań tworzy luki literaturowe, które niniejszy projekt częściowo wypełnia.
+Wnioski dotyczące skuteczności RAVE i heurystyki alpha-beta w 6$\times$6
+mogą być predykcyjne dla większych rozmiarów planszy --- choć potwierdzenie
+tego wymagałoby dodatkowych eksperymentów.

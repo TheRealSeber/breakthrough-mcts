@@ -1,14 +1,137 @@
 \section{Wnioski}
+\label{sec:wnioski}
 
-% TODO: Dla każdej hipotezy: czy potwierdzona? Co dokładnie wynika z danych?
-% Krótkie omówienie ograniczeń (liczba partii, branching factor, brak deep RL etc.)
-% Propozycje dalszych prac.
+\subsection{Status hipotez badawczych}
 
-\subsection{Status hipotez}
-[H1, H2, H3, H4 -- potwierdzona / odrzucona / niejednoznaczna.]
+\paragraph{H1 (RAVE poprawia jakość gry względem vanilla UCT) ---
+\textsc{sfalsyfikowana}.}
+W przeprowadzonych eksperymentach (60 partii na konfigurację, master seed 42)
+RAVE nie wygrywa istotnie z vanilla UCT na żadnym z testowanych budżetów
+iteracji. Przy 1000 i 5000 iteracji wyniki są na granicy statystycznej
+parytetu (50,0\% i 48,3\% wygranych RAVE; 95\% CI Wilsona przecinają 50\%).
+Przy 10 000 iteracji RAVE \emph{przegrywa} istotnie statystycznie
+(30,0\%, CI [19,9\%; 42,5\%]).
 
-\subsection{Ograniczenia}
-[Liczba partii, brak głębokich sieci, sequential MCTS only.]
+Wynik jest sprzeczny z literaturą rozwoju MCTS dla gry Go
+\cite{gelly2011monte}, lecz spójny z naturą gry Breakthrough: w przeciwieństwie
+do Go, gdzie wartość ruchu jest w dużej mierze niezależna od kontekstu
+(translation-invariant), w Breakthrough wartość ruchu zależy silnie od pozycji
+konkretnego pionka. Statystyki AMAF agregowane przez wszystkie pozycje
+w drzewie i symulacjach nie niosą zatem czystego sygnału jakości ruchu ---
+średnia wartość ruchu zagranego ,,gdziekolwiek'' jest niemal nieinformatywna.
+W naszej interpretacji RAVE staje się tym bardziej szkodliwy, im więcej
+iteracji ma do dyspozycji, ponieważ akumuluje więcej szumu, podczas gdy
+vanilla UCT efektywnie wykorzystuje rosnący budżet.
 
-\subsection{Dalsze prace}
-[Co dalej można sprawdzić.]
+\paragraph{H2 (Progressive Bias poprawia jakość gry względem vanilla UCT) ---
+\textsc{niejednoznaczna}.}
+Progressive Bias osiąga 41,7\%, 53,3\% i 53,3\% wygranych przy budżetach
+1000, 5000 i 10 000 iteracji. Wszystkie 95\% CI przecinają linię 50\%, więc
+statystycznie nie można odrzucić hipotezy zerowej (brak różnicy względem UCT).
+Trend obserwowany w danych (rosnący stosunek wygranych z budżetem) sugeruje
+możliwą drobną korzyść przy wyższych budżetach, lecz wymaga to potwierdzenia
+większą liczbą partii (aktualne CI mają szerokość $\sim$24 pp).
+
+\paragraph{H3 (heurystyka pokonuje MCTS przy niskim budżecie, lecz przegrywa
+przy wysokim) --- \textsc{częściowo potwierdzona}.}
+Heurystyka oparta na alpha-beta z głębokością 5 \emph{miażdży} agenta UCT
+przy wszystkich praktycznych budżetach: 100\% wygranych przy UCT(200--10\,000),
+98,3\% przy UCT(20\,000), 93,3\% przy UCT(50\,000) i 85,0\% przy UCT(100\,000).
+Pierwsza część hipotezy (przewaga heurystyki przy niskim budżecie) jest
+więc silnie potwierdzona dla całego praktycznego zakresu iteracji.
+
+Druga część hipotezy (cross-over przy wysokim budżecie) jest \emph{wskazana
+trendem, lecz nie osiągnięta} w przeprowadzonych eksperymentach. Krzywa win-rate
+heurystyki maleje monotonicznie w okolicach UCT(20\,000) i nabiera tempa
+w okolicach UCT(50\,000)--UCT(100\,000), sugerując że teoretyczny punkt
+krzyżowania (50\% / 50\%) leży w okolicach UCT(500\,000)--UCT(1\,000\,000) iteracji.
+Tak wysoki budżet przekracza praktyczne ramy zarówno czasowe (UCT(100\,000)
+zajmował już 10 sekund na ruch), jak i metodologiczne (gracz na takim
+budżecie wykraczałby poza klasyczne porównanie agentów MCTS).
+
+Wynik wymaga rewizji wniosku z literatury. W grach o niskim
+branching factor i wyraźnej strukturze taktycznej (jak Breakthrough),
+prosta funkcja ewaluacji łącznie z deterministycznym przeszukiwaniem
+alpha-beta może być \emph{tańsza obliczeniowo i istotnie skuteczniejsza}
+niż MCTS w całym praktycznym zakresie czasów decyzji. Czas wyboru ruchu
+przez heurystykę wynosił $\sim$30 ms, podczas gdy UCT(100\,000) ---
+$\sim$10 sekund.
+
+\paragraph{H4 (przewaga pierwszego gracza maleje ze wzrostem rozmiaru planszy) ---
+\textsc{sfalsyfikowana}.}
+Przy 500 partiach na rozmiar planszy (UCT 5000 iteracji jako biały i czarny):
+6$\times$6: białe 49,4\%, 6$\times$8: białe 50,8\%, 8$\times$8: białe 49,4\%.
+Wszystkie trzy 95\% CI Wilsona ($\pm$4,4 pp) zawierają 50\% z dużym zapasem.
+Brak również monotonicznego trendu z rozmiarem planszy.
+
+Hipoteza wymaga weryfikacji: być może przy \emph{perfekcyjnej} grze
+(jak w przypadku rozwiązanego Breakthrough 5$\times$5
+\cite{saffidine2011solving}) białe rzeczywiście wygrywają, lecz UCT
+z 5000 iteracji nie zbiega do optimum przy ograniczonym budżecie. Drugą
+możliwą interpretacją jest, że symetria w sztuce gry przy podobnym
+poziomie obu agentów po prostu eliminuje przewagę tempa pierwszego ruchu.
+
+\subsection{Synteza i kluczowe odkrycie}
+
+Najbardziej zaskakującym wynikiem projektu jest \textbf{nieskuteczność
+RAVE w Breakthrough} (zarówno w pierwotnej zbugowanej implementacji,
+jak i w poprawionej, zgodnej z literaturą). Pokazuje to, że standardowe
+techniki rozwoju MCTS są domain-specific: założenie ,,dobrego ruchu
+zagranego gdziekolwiek'' (kluczowe dla AMAF) działa świetnie w Go,
+lecz załamuje się w grze, gdzie te same fizyczne ruchy mają radykalnie
+różną wartość w zależności od pozycji.
+
+Drugim ważnym wnioskiem jest \textbf{względna siła prostej heurystyki
+alpha-beta} dla tej klasy gier. Heurystyka ze starannie dobranymi wagami
+(zaawansowanie + materiał + mobilność) i głębokością 5 dominuje MCTS
+w całym praktycznym zakresie iteracji.
+
+\subsection{Ograniczenia metodologiczne}
+
+\begin{itemize}[nosep]
+    \item \textbf{Liczba partii.} Wszystkie eksperymenty miały co najmniej 60
+          partii na konfigurację, lecz dla H1 i H2 to wciąż daje CI o szerokości
+          ok. 24 pp. Aby poprawić ich precyzję 4-krotnie, należałoby zwiększyć
+          do 240 partii (4-krotny wzrost zasobów obliczeniowych).
+    \item \textbf{Sekwencyjne MCTS.} Zgodnie z założeniami metodologicznymi
+          projektu, MCTS jest sekwencyjny --- zrównoleglenie odbywa się
+          wyłącznie na poziomie batchowania eksperymentów. Wnioski dotyczą
+          więc czystego MCTS, nie wariantów typu virtual loss czy root
+          parallelization.
+    \item \textbf{Brak głębokich sieci.} Współczesny stan sztuki (AlphaZero,
+          MuZero) używa sieci neuronowych do polityki priorów i ewaluacji
+          stanów. Niniejszy projekt ogranicza się do klasycznych technik
+          MCTS sprzed ery deep RL.
+    \item \textbf{Pojedynczy hiperparametr $c$.} Eksperymenty używają
+          $c = \sqrt{2}$ jako stałej eksploracji UCB1 dla wszystkich agentów.
+          Optymalna wartość $c$ może być różna dla różnych wariantów,
+          a optymalizacja hiperparametrów per-agent mogłaby zmienić relatywne
+          wyniki.
+    \item \textbf{Symulacje losowe.} Rolloutsy są czysto losowe (uniform).
+          Polityki rolloutowe oparte na heurystyce (np. light playouts
+          z bias na zaawansowanie pionka) mogłyby istotnie zmienić wyniki
+          --- szczególnie dla wariantu H3 oraz dla samego RAVE
+          (sygnał AMAF byłby silniejszy z heurystyczną symulacją).
+\end{itemize}
+
+\subsection{Propozycje dalszych prac}
+
+\begin{itemize}[nosep]
+    \item \textbf{Polityka rolloutowa oparta na heurystyce.} Jednym z najprostszych
+          rozszerzeń byłaby zamiana czysto losowych symulacji na epsilon-greedy
+          po heurystyce (np. ulubione ruchy z funkcji ewaluacji). Powinno to
+          drastycznie poprawić wszystkich agentów MCTS i może zmienić
+          rezultat H1 (RAVE z heurystycznymi rolloutami).
+    \item \textbf{MAST i NAST.} Alternatywne techniki uczące się polityki
+          symulacyjnej --- Move-Average Sampling Technique \cite{finnsson2008simulation}
+          --- mogłyby przewyższyć heurystykę w niskim/średnim zakresie
+          iteracji. To naturalna kontynuacja H2.
+    \item \textbf{Hyperparametr sweep.} Systematyczne badanie wpływu $c$,
+          $b^2$ (RAVE) i wagi bias (PB) na wyniki, z optymalizacją per-agent.
+    \item \textbf{Krzyżowanie z deep RL.} Implementacja prostej sieci ewaluacyjnej
+          (jak w AlphaZero, lecz z mniejszą architekturą) i jej porównanie
+          z heurystyką alpha-beta byłoby naturalnym rozszerzeniem do pracy magisterskiej.
+    \item \textbf{Analiza wariancji.} Każdy z eksperymentów był uruchomiony
+          z jednym master seedem. Powtórzenie z 5--10 master seedami
+          dałoby ocenę stabilności wniosków poza pojedynczym uruchomieniem.
+\end{itemize}

@@ -1,50 +1,202 @@
 \section{Wyniki}
+\label{sec:wyniki}
 
-% TODO: Włącz wykresy z report/figures/, zinterpretuj. Każda hipoteza dostaje
-% subsection z wykresem + krótkim komentarzem co z niego wynika.
+W niniejszej sekcji prezentujemy wyniki czterech eksperymentów odpowiadających
+hipotezom H1--H4. Wszystkie odsetki wygranych raportowane są wraz z 95\%
+przedziałami ufności wyliczanymi metodą Wilsona \cite{wilson1927probable}.
 
-\subsection{H1: RAVE vs UCT}
+\subsection{H1: RAVE vs vanilla UCT}
+\label{sec:wyniki-h1}
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.85\textwidth]{figures/h1_rave_vs_uct}
-    \caption{Skalowanie win-rate RAVE i UCT z budżetem iteracji (95\% CI Wilsona).
-    [Komentarz co widać.]}
+    \caption{Skalowanie odsetków wygranych RAVE i UCT z budżetem iteracji.
+    Punkty pokazują win-rate każdego agenta we wszystkich rozegranych przez niego partiach
+    (turniej round-robin), a słupki błędów to 95\% CI Wilsona. Linia pozioma na 50\%
+    oznacza neutralność (równa siła). Po naprawie błędów w implementacji
+    (sekcja~\ref{sec:llm}), RAVE jest na parytecie z UCT przy 1000 i 5000 iteracji,
+    lecz wyraźnie przegrywa przy 10\,000 iteracji.}
     \label{fig:h1}
 \end{figure}
 
-[Interpretacja H1: czy RAVE jest istotnie lepszy? Przy jakim budżecie?]
+\paragraph{Dane liczbowe (n=60 partii na konfigurację):}
+\begin{itemize}[nosep]
+    \item RAVE(1000)  vs UCT(1000):   30/60 wygranych = \textbf{50,0\%} \quad CI [37,7\%; 62,3\%]
+    \item RAVE(5000)  vs UCT(5000):   29/60 wygranych = \textbf{48,3\%} \quad CI [36,2\%; 60,7\%]
+    \item RAVE(10\,000) vs UCT(10\,000): 18/60 wygranych = \textbf{30,0\%} \quad CI [19,9\%; 42,5\%]
+\end{itemize}
 
-\subsection{H2: Progressive Bias vs UCT}
+Rezultat jest istotnie odmienny od oczekiwań literaturowych z dziedziny Go,
+gdzie RAVE przewyższa vanilla UCT przy każdym praktycznym budżecie
+\cite{gelly2011monte}. Najbardziej zaskakująca jest tendencja malejąca:
+\emph{im większy budżet iteracji, tym gorsza jakość RAVE} względem UCT.
+Interpretujemy to następująco: RAVE polega na akumulacji wartości AMAF przez
+wszystkie pozycje w drzewie i symulacjach, zakładając przesuwalność wartości
+ruchu (translation invariance). To założenie zachodzi w Go (kamień postawiony
+w punkcie X ma podobną wartość w różnych kontekstach), ale załamuje się
+w Breakthrough, gdzie wartość ruchu typu ,,pionek z s24 do s30'' jest
+silnie zależna od reszty pozycji. Im więcej iteracji, tym więcej szumu
+akumuluje się w AMAF, podczas gdy vanilla UCT efektywnie wykorzystuje
+rosnący budżet do precyzowania szacunków per-stan.
 
-\begin{figure}[h]
+\subsection{H2: Progressive Bias vs vanilla UCT}
+\label{sec:wyniki-h2}
+
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.85\textwidth]{figures/h2_pb_vs_uct}
-    \caption{Skalowanie win-rate Progressive Bias i UCT.}
+    \caption{Skalowanie odsetków wygranych Progressive Bias i UCT.
+    Bias termu w selekcji oparty na heurystyce zaawansowania pionków
+    z bonusem za bicie. Wszystkie 95\% CI przecinają linię 50\% --- brak
+    statystycznie istotnej różnicy między PB a UCT.}
     \label{fig:h2}
 \end{figure}
 
-[Interpretacja H2.]
+\paragraph{Dane liczbowe (n=60 partii na konfigurację):}
+\begin{itemize}[nosep]
+    \item PB(1000)  vs UCT(1000):   25/60 wygranych = \textbf{41,7\%} \quad CI [30,1\%; 54,3\%]
+    \item PB(5000)  vs UCT(5000):   32/60 wygranych = \textbf{53,3\%} \quad CI [40,9\%; 65,4\%]
+    \item PB(10\,000) vs UCT(10\,000): 32/60 wygranych = \textbf{53,3\%} \quad CI [40,9\%; 65,4\%]
+\end{itemize}
 
-\subsection{H3: Heurystyka vs MCTS --- punkt krzyżowania}
+W żadnym z testowanych budżetów PB nie pokonuje UCT istotnie statystycznie.
+Trend rosnący (od 41,7\% do 53,3\%) sugeruje możliwą drobną korzyść przy
+wyższych budżetach, ale aktualne CI o szerokości $\sim$24 pp nie pozwalają
+na rozstrzygnięcie. Aby zawęzić CI 4-krotnie wymagałoby to 240 partii na
+konfigurację (4-krotne zwiększenie liczby gier).
 
-\begin{figure}[h]
+Interpretacja: heurystyka użyta w bias termie (zaawansowanie pionka i bonus
+za bicie) jest zdecydowanie prostsza niż pełna funkcja ewaluacji w agentcie
+heurystycznym (sekcja~\ref{sec:wyniki-h3}). Domain knowledge wstrzyknięte
+do MCTS przez PB jest zatem ograniczone, a sama metoda zachowuje
+dobrą zbieżność asymptotyczną UCT.
+
+\subsection{H3: Heurystyka alpha-beta vs UCT --- poszukiwanie cross-over}
+\label{sec:wyniki-h3}
+
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.85\textwidth]{figures/h3_heuristic_vs_uct}
-    \caption{Win-rate heurystyki (alpha-beta d=5) vs UCT przy rosnącym budżecie iteracji.
-    Oczekiwany cross-over: heurystyka dominuje przy niskim budżecie, MCTS dominuje przy wysokim.}
+    \caption{Odsetek wygranych heurystyki (alpha-beta z głębokością 5) względem
+    rosnącego budżetu iteracji UCT. Wykres logarytmiczny po osi X.
+    Heurystyka miażdży UCT we wszystkich praktycznych budżetach, ale jej
+    przewaga zaczyna pękać w okolicach 50\,000--100\,000 iteracji ---
+    nie tworząc jednak punktu krzyżowania w testowanym zakresie.}
     \label{fig:h3}
 \end{figure}
 
-[Interpretacja H3: gdzie jest punkt krzyżowania?]
+\paragraph{Dane liczbowe (n=60 partii na konfigurację, łącznie 1260 partii):}
 
-\subsection{H4: Przewaga pierwszego gracza vs rozmiar planszy}
+\begin{center}
+\begin{tabular}{rcccc}
+\toprule
+\textbf{Budżet UCT} & \textbf{Heur wygrywa} & \textbf{Win-rate} & \textbf{95\% CI} & \textbf{Czas/grę UCT} \\
+\midrule
+200      & 60/60 & 100,0\% & [94,0; 100]   & 0,02 s \\
+500      & 59/60 &  98,3\% & [91,1; 99,7]  & 0,05 s \\
+1\,000   & 59/60 &  98,3\% & [91,1; 99,7]  & 0,1 s \\
+5\,000   & 60/60 & 100,0\% & [94,0; 100]   & 0,5 s \\
+10\,000  & 60/60 & 100,0\% & [94,0; 100]   & 1,1 s \\
+20\,000  & 59/60 &  98,3\% & [91,1; 99,7]  & 2,4 s \\
+50\,000  & 56/60 &  93,3\% & [84,1; 97,4]  & 5,7 s \\
+100\,000 & 51/60 &  85,0\% & [73,9; 91,9]  & 10,1 s \\
+\bottomrule
+\end{tabular}
+\end{center}
 
-\begin{figure}[h]
+Heurystyka pozostaje dominująca w całym praktycznym zakresie. Pierwsza część
+hipotezy (wyższość heurystyki przy niskich budżetach) jest spektakularnie
+potwierdzona. Druga część (cross-over przy wysokich budżetach) jest
+\emph{wskazana trendem, lecz nie osiągnięta}: krzywa win-rate maleje
+monotonicznie od UCT(20\,000) wzwyż, a tempo spadku rośnie przy
+UCT(100\,000). Ekstrapolując liniowo logarytmiczny trend, teoretyczny
+cross-over (50\%) leży w okolicach UCT(500\,000)--UCT(1\,000\,000) iteracji ---
+poza praktycznym zakresem (UCT(100\,000) zajmował już 10\,s/ruch, więc
+UCT(1\,000\,000) zajmowałby ok. 100\,s).
+
+Wynik jest mocnym argumentem za stosowaniem prostych deterministycznych
+graczy z funkcją ewaluacji w grach o wyraźnej strukturze taktycznej
+i niskim/średnim branching factor. Heurystyka w naszej implementacji wybiera
+ruch w $\sim$30 ms (depth 5, 6$\times$6 plansza), więc w jednej grze 30 ruchów
+to $\sim$1\,s --- co najmniej 10$\times$ taniej niż UCT(100\,000) i jednocześnie
+silniej grające.
+
+\subsection{H4: Przewaga pierwszego gracza w funkcji rozmiaru planszy}
+\label{sec:wyniki-h4}
+
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.7\textwidth]{figures/h4_first_player_advantage}
-    \caption{Win-rate białych w turniejach UCT vs UCT na różnych rozmiarach planszy.}
+    \caption{Odsetek wygranych białych (pierwszego gracza) w turniejach
+    UCT(5000) vs UCT(5000) na trzech rozmiarach planszy. Linia 50\% oznacza
+    brak przewagi. Wszystkie 95\% CI Wilsona zawierają 50\%, brak też
+    monotonicznego trendu malejącego z rozmiarem.}
     \label{fig:h4}
 \end{figure}
 
-[Interpretacja H4: czy przewaga maleje z rozmiarem?]
+\paragraph{Dane liczbowe (n=500 partii na rozmiar planszy):}
+
+\begin{center}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Plansza} & \textbf{Białe wygrywają} & \textbf{Win-rate} & \textbf{95\% CI} & \textbf{Średnio ruchów/gra} \\
+\midrule
+6$\times$6 & 247/500 & 49,4\% & [45,0; 53,8] & 33,2 \\
+6$\times$8 & 254/500 & 50,8\% & [46,4; 55,2] & 41,2 \\
+8$\times$8 & 247/500 & 49,4\% & [45,0; 53,8] & 59,1 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Hipoteza H4 jest jednoznacznie sfalsyfikowana: nie tylko brak istotnej
+statystycznie przewagi pierwszego gracza w żadnym z trzech rozmiarów planszy,
+ale również brak monotonicznego trendu (sekwencja 49,4 $\to$ 50,8 $\to$ 49,4).
+Szerokość CI (ok. $\pm$4,4 pp) jest wystarczająco wąska, by stwierdzić,
+że ewentualna ,,prawdziwa'' przewaga białych jest mniejsza niż 4 pp ---
+co metodologicznie odpowiada brakowi przewagi praktycznej.
+
+Interpretacja:
+\begin{itemize}[nosep]
+    \item Przy MCTS o zbliżonej sile, oboje gracze grają sub-optymalnie
+          w sposób przybliżonie symetryczny --- przewaga tempa pierwszego
+          ruchu zostaje ,,wyzerowana'' przez błędy obu stron.
+    \item Możliwe, że przy perfekcyjnej grze (jak w rozwiązanym Breakthrough
+          5$\times$5 \cite{saffidine2011solving}) białe rzeczywiście wygrywają,
+          lecz UCT z 5000 iteracji nie zbliża się do tej granicy.
+\end{itemize}
+
+\subsection{Synteza ilościowa}
+
+Tabela~\ref{tab:synteza} podsumowuje status każdej hipotezy.
+
+\begin{table}[ht]
+\centering
+\caption{Synteza wyników eksperymentalnych.}
+\label{tab:synteza}
+\begin{tabular}{p{3cm}p{6cm}p{4cm}}
+\toprule
+\textbf{Hipoteza} & \textbf{Wynik} & \textbf{Status} \\
+\midrule
+H1: RAVE > UCT &
+50,0\% / 48,3\% / 30,0\%
+(@ 1k / 5k / 10k iter) &
+Sfalsyfikowana \\
+\midrule
+H2: PB > UCT &
+41,7\% / 53,3\% / 53,3\%
+(@ 1k / 5k / 10k iter) &
+Niejednoznaczna \\
+\midrule
+H3: heurystyka > UCT przy niskim budżecie, < UCT przy wysokim &
+100\% $\to$ 85\%
+(@ 200--100\,000 iter) &
+Częściowo potwierdzona \\
+\midrule
+H4: przewaga białych maleje z planszą &
+49,4\% / 50,8\% / 49,4\%
+(6$\times$6, 6$\times$8, 8$\times$8) &
+Sfalsyfikowana \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,9 +1,114 @@
 \section{Wstęp}
+\label{sec:wstep}
 
-% TODO: rozszerzona wersja konspektowego "Opisu problemu". Pokryj:
-%  - Czym jest Breakthrough, zasady, historia
-%  - Dlaczego nadaje się jako benchmark MCTS (branching factor, głębokość, determinizm)
-%  - Modyfikacja: 6x6 zamiast 8x8 z uzasadnieniem
-%  - Zarys raportu (jakie hipotezy zostaną zbadane)
+\subsection{Cel projektu}
 
-[Wstęp do uzupełnienia. Bazuje na konspekcie sekcja 1.]
+Niniejszy projekt zastosowuje algorytm Monte Carlo Tree Search (MCTS) z regułą
+selekcji UCT do gry \emph{Breakthrough} 6$\times$6, by przebadać empirycznie
+cztery hipotezy badawcze dotyczące skuteczności klasycznych rozszerzeń
+MCTS oraz porównania MCTS z deterministyczną heurystyką alpha-beta.
+Projekt obejmuje pełny pipeline badawczy: implementację silnika gry,
+implementację czterech agentów AI (vanilla UCT, RAVE, Progressive Bias,
+heurystyka alpha-beta), eksperymentalną walidację hipotez oraz analizę
+statystyczną wyników.
+
+\subsection{Gra Breakthrough}
+
+\paragraph{Zasady.}
+Breakthrough to dwuosobowa gra strategiczna z pełną informacją, zaprojektowana
+przez Dana Trokę w 2000 roku jako zwycięski projekt konkursu 8$\times$8
+Game Design Competition. Plansza jest prostokątna; dwa pierwsze rzędy
+po każdej stronie wypełnione są pionkami danego koloru. Gracze ruszają
+się na zmianę, każdy ruch przesuwa pionek o jedno pole do przodu (prosto
+lub po skosie):
+\begin{itemize}[nosep]
+    \item ruch prosty jest dozwolony tylko na puste pole,
+    \item ruch po skosie może być wykonany na pole puste lub zajęte przez
+          pionek przeciwnika (bicie),
+    \item bicie prosto jest niedozwolone, pionki nie mogą się cofać.
+\end{itemize}
+Gra kończy się zwycięstwem gracza, który: (a) doprowadzi pionek do
+ostatniego rzędu przeciwnika, (b) zbije wszystkie pionki przeciwnika,
+lub (c) uniemożliwi przeciwnikowi wykonanie jakiegokolwiek legalnego ruchu.
+W klasycznych regułach nie występują remisy.
+
+\paragraph{Modyfikacja: plansza 6$\times$6.}
+Zamiast klasycznej planszy 8$\times$8 użyliśmy 6$\times$6 z trzech powodów:
+
+\begin{enumerate}[nosep]
+    \item \emph{Wydajność obliczeń.} Mniejsza plansza pozwala na większą
+          liczbę iteracji MCTS w tym samym czasie, co jest kluczowe przy
+          minimum 60 partiach na konfigurację oraz wielu hipotezach
+          do zweryfikowania.
+    \item \emph{Reprezentacja bitboardowa.} Plansza 6$\times$6 = 36 pól
+          mieści się w pojedynczym \texttt{u64}, upraszczając implementację
+          generatora ruchów (proste przesunięcia bitowe z maskami krawędzi).
+    \item \emph{Otwartość problemu.} Breakthrough 6$\times$6 nie został
+          rozwiązany (nie istnieje znany ,,perfekcyjny gracz''),
+          co czyni go atrakcyjnym dla badań empirycznych. Dla porównania,
+          5$\times$5 zostało rozwiązane w \cite{saffidine2011solving}
+          (białe wygrywają), a 8$\times$8 jest poza zasięgiem obecnych
+          solwerów.
+\end{enumerate}
+
+\subsection{Dlaczego Breakthrough nadaje się jako benchmark MCTS}
+
+Breakthrough spełnia pożądane charakterystyki problemu testowego dla MCTS:
+
+\begin{itemize}[nosep]
+    \item \emph{Pełna informacja, brak losowości.} Nie wymaga rozszerzeń typu
+          determinizacja czy POMCP --- klasyczne UCT jest bezpośrednio stosowalne.
+    \item \emph{Niebanalna strategicznie.} Mimo prostych zasad, wymaga planowania
+          na kilka ruchów naprzód: budowanie łańcuchów pionków, kontrola
+          krytycznych kolumn, poświęcenia dla osiągnięcia przełomu (stąd nazwa).
+    \item \emph{Branching factor 10--20.} Wystarczająco mały by drzewo było
+          dobrze pokrywane symulacjami, wystarczająco duży by przeszukiwanie
+          alpha-beta nie eksplodowało.
+    \item \emph{Głębokość 20--40 półruchów.} Symulacje losowe trwają $\sim$milisekundy.
+    \item \emph{Niszowość.} Mniej zbadana niż Go czy szachy --- mniejsze
+          ryzyko, że ,,wszystko już zostało zrobione''.
+\end{itemize}
+
+\subsection{Hipotezy badawcze}
+
+W projekcie weryfikujemy cztery hipotezy:
+
+\begin{itemize}[nosep]
+    \item[\textbf{H1}] \emph{UCT z RAVE istotnie poprawia jakość gry względem
+          vanilla UCT przy tym samym budżecie iteracji.} Hipoteza klasyczna,
+          dobrze potwierdzona w grze Go --- testujemy jej przenośność do
+          Breakthrough.
+
+    \item[\textbf{H2}] \emph{UCT z Progressive Bias istotnie poprawia jakość
+          gry względem vanilla UCT.} Druga modyfikacja UCT, oparta na
+          wstrzykiwaniu prostej heurystyki domenowej do funkcji selekcji.
+          Wybór Progressive Bias (zamiast MAST) motywowany powiązaniem
+          z H3: ta sama funkcja heurystyczna używana w obu eksperymentach.
+
+    \item[\textbf{H3}] \emph{Specjalistyczna heurystyka (alpha-beta z głębokością 5)
+          wygrywa z vanilla UCT przy niskich budżetach iteracji, lecz przegrywa
+          przy wysokich.} Klasyczny trade-off między wiedzą domenową
+          a mocą obliczeniową. Testujemy istnienie i położenie punktu
+          krzyżowania (cross-over).
+
+    \item[\textbf{H4}] \emph{Białe (pierwszy gracz) mają istotną statystycznie
+          przewagę w Breakthrough 6$\times$6 przy MCTS równej siły, malejącą
+          w kierunku planszy 8$\times$8.} Hipoteza własna, testowana na trzech
+          rozmiarach: 6$\times$6, 6$\times$8, 8$\times$8. Motywowana intuicją,
+          że na mniejszej planszy pierwsza ruchowa przewaga ,,szybciej się
+          materializuje''.
+\end{itemize}
+
+\subsection{Struktura raportu}
+
+Sekcja~\ref{sec:literatura} przedstawia przegląd literatury MCTS oraz
+dotychczasowych prac nad grą Breakthrough.
+Sekcja~\ref{sec:metoda} szczegółowo opisuje algorytmy każdego z agentów
+oraz architekturę implementacji.
+Sekcja~\ref{sec:eksperymenty} prezentuje plan eksperymentów ze szczegółami
+konfiguracyjnymi oraz wspólną metodologię statystyczną.
+Sekcja~\ref{sec:wyniki} zawiera wyniki eksperymentów wraz z interpretacją.
+Sekcja~\ref{sec:wnioski} podsumowuje status hipotez, ograniczenia metodologiczne
+i propozycje dalszych prac.
+Sekcja~\ref{sec:llm} dokumentuje wykorzystanie modeli językowych
+w realizacji projektu zgodnie z wymaganiami przedmiotu.
