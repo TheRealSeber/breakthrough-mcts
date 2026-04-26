@@ -8,8 +8,8 @@ use std::sync::Arc;
 #[pyclass(frozen)]
 #[derive(Clone)]
 pub struct GameState {
-    pub white: u64,
-    pub black: u64,
+    #[pyo3(get)] pub white: u64,
+    #[pyo3(get)] pub black: u64,
     #[pyo3(get)] pub rows: u8,
     #[pyo3(get)] pub cols: u8,
     pub white_to_move: bool,
