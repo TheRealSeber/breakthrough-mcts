@@ -6,7 +6,7 @@ if __name__ == "__main__":
     agents = []
     for iters in [1000, 5000, 10000]:
         agents.append(AgentConfig(type="uct", iterations=iters))
-        agents.append(AgentConfig(type="rave", iterations=iters, rave_k=1000.0))
+        agents.append(AgentConfig(type="rave", iterations=iters, rave_k=0.01))
 
     exp = Experiment(
         name="h1_rave_vs_uct",

@@ -18,7 +18,7 @@ class AgentConfig:
     type: str
     iterations: int = 1000
     c: float = 1.4142135623730951
-    rave_k: float = 1000.0
+    rave_k: float = 0.01
     bias_weight: float = 1.0
     depth: int = 5
 

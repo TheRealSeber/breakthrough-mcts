@@ -38,7 +38,7 @@ def make_agent(config: dict, seed: int | None = None):
         return RaveAgent(
             config.get("iterations", 1000),
             config.get("c", 1.4142135623730951),
-            config.get("rave_k", 1000.0),
+            config.get("rave_k", 0.01),
             seed=seed,
         )
     if t == "pb":
