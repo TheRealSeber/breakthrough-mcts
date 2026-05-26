@@ -4,7 +4,7 @@ from copy import deepcopy
 class RefGameState:
     """Pure-Python Breakthrough implementation. Clarity over performance."""
 
-    def __init__(self, rows: int = 6, cols: int = 6):
+    def __init__(self, rows: int = 8, cols: int = 8):
         self.rows = rows
         self.cols = cols
         self.board: list[list[str | None]] = [[None] * cols for _ in range(rows)]

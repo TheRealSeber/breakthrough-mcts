@@ -12,7 +12,7 @@ from breakthrough.agents import make_agent
 
 CELL = 90
 MARGIN = 40
-ROWS, COLS = 6, 6
+ROWS, COLS = 8, 8
 W = COLS * CELL + 2 * MARGIN
 H = ROWS * CELL + 2 * MARGIN + 60
 
@@ -36,7 +36,7 @@ def pixel_to_sq(x: int, y: int, cols: int) -> int | None:
 def run_gui():
     pygame.init()
     screen = pygame.display.set_mode((W, H))
-    pygame.display.set_caption("Breakthrough 6x6")
+    pygame.display.set_caption("Breakthrough 8x8")
     font = pygame.font.SysFont("monospace", 18)
     clock = pygame.time.Clock()
 
@@ -148,11 +148,27 @@ def run_gui():
 
         draw()
 
+    # Collect difficulty rating from user
+    difficulty_rating = None
+    if state.is_terminal():
+        try:
+            rating = input("Rate AI difficulty (1-10): ").strip()
+            if rating.isdigit() and 1 <= int(rating) <= 10:
+                difficulty_rating = int(rating)
+        except (EOFError, KeyboardInterrupt):
+            pass
+
     Path("results/human_games").mkdir(parents=True, exist_ok=True)
     log_path = Path("results/human_games") / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.jsonl"
     with open(log_path, "w") as f:
         for entry in game_log:
             f.write(json.dumps(entry) + "\n")
+        summary = {
+            "winner": state.winner(),
+            "n_moves": len(game_log),
+            "difficulty_rating": difficulty_rating,
+        }
+        f.write(json.dumps(summary) + "\n")
     print(f"Game log saved to {log_path}")
 
     pygame.quit()

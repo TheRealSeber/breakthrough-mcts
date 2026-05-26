@@ -3,23 +3,16 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, "notebooks")
-from shared_utils import load_games, wilson_ci, save_fig
+from shared_utils import load_games, wilson_ci, significance_test, cohens_h, save_fig
 import matplotlib.pyplot as plt
 
 GAMES = Path("results/h3_heuristic_vs_uct/games.jsonl")
-GAMES_EXT = Path("results/h3_heuristic_vs_uct_extended/games.jsonl")
-
-import pandas as pd
-dfs = []
-if GAMES.exists():
-    dfs.append(load_games(GAMES))
-if GAMES_EXT.exists():
-    dfs.append(load_games(GAMES_EXT))
-if not dfs:
-    print(f"No data at {GAMES} or {GAMES_EXT}; run experiments/run_h3.py first.")
+if not GAMES.exists():
+    print(f"No data at {GAMES}; run experiments/run_h3.py first.")
     sys.exit(0)
-df = pd.concat(dfs, ignore_index=True)
-print(f"Loaded {len(df)} games (combined main + extended)")
+
+df = load_games(GAMES)
+print(f"Loaded {len(df)} games")
 
 # For each UCT iteration budget, compute heuristic's win rate vs that UCT config
 iters_set = set()
@@ -46,7 +39,14 @@ for iters in sorted(iters_set):
                 wins += 1
     if n > 0:
         rate, lo, hi = wilson_ci(wins, n)
-        xs.append(iters); rates.append(rate); los.append(lo); his.append(hi)
+        p_val = significance_test(wins, n)
+        effect = cohens_h(rate)
+        xs.append(iters)
+        rates.append(rate)
+        los.append(lo)
+        his.append(hi)
+        print(f"  UCT iters={iters:>6d}: heuristic rate={rate:.3f} "
+              f"CI=[{lo:.3f}, {hi:.3f}] p={p_val:.4f} h={effect:.3f}")
 
 fig, ax = plt.subplots(figsize=(8, 5))
 err_lo = [r - l for r, l in zip(rates, los)]

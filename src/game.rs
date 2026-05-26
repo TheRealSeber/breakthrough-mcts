@@ -135,7 +135,7 @@ fn extract_moves(mut bb: u64, offset: i32, out: &mut Vec<(u8, u8)>) {
 #[pymethods]
 impl GameState {
     #[new]
-    #[pyo3(signature = (rows=6, cols=6))]
+    #[pyo3(signature = (rows=8, cols=8))]
     pub fn new(rows: u8, cols: u8) -> Self {
         assert!((rows as u32) * (cols as u32) <= 64, "board too large for u64 bitboard");
         let (left_edge, right_edge, board_mask, top_row, bot_row) = Self::make_masks(rows, cols);

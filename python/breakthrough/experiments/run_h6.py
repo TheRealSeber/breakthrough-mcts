@@ -1,18 +1,17 @@
-"""H2: Progressive Bias vs UCT at varying iteration budgets."""
+"""H6: Decision time analysis by move number."""
 from pathlib import Path
 from breakthrough.experiments.harness import Experiment, AgentConfig, run_experiment
 
 if __name__ == "__main__":
     agents = []
-    for iters in [5000, 10000, 50000, 100000]:
+    for iters in [5000, 10000, 50000]:
         agents.append(AgentConfig(type="uct", iterations=iters))
-        agents.append(AgentConfig(type="pb", iterations=iters, bias_weight=1.0))
 
     exp = Experiment(
-        name="h2_pb_vs_uct",
+        name="h6_decision_time",
         agents=agents,
         n_games_per_pair=100,
-        master_seed=43,
+        master_seed=47,
         output_dir=Path("results"),
         board_rows=8,
         board_cols=8,

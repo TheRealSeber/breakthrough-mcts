@@ -27,12 +27,12 @@ class AgentConfig:
 class Experiment:
     name: str
     agents: list[AgentConfig]
-    n_games_per_pair: int = 60
+    n_games_per_pair: int = 100
     master_seed: int = 42
     parallel: int = -1
     output_dir: Path = field(default_factory=lambda: Path("results"))
-    board_rows: int = 6
-    board_cols: int = 6
+    board_rows: int = 8
+    board_cols: int = 8
 
 
 def _derive_seed(master_seed: int, game_id: str) -> int:
@@ -52,6 +52,7 @@ def _play_game(
     black_agent = make_agent(black_cfg, seed=seed ^ 0xDEADBEEF)
     state = GameState(rows, cols)
     moves: list[list[int]] = []
+    move_times: list[float] = []
     t_white = t_black = 0.0
 
     while not state.is_terminal():
@@ -64,6 +65,7 @@ def _play_game(
         else:
             t_black += dt
         moves.append([int(mv[0]), int(mv[1])])
+        move_times.append(round(dt, 6))
         state = state.apply(mv[0], mv[1])
 
     return {
@@ -74,6 +76,8 @@ def _play_game(
         "seed": seed,
         "winner": state.winner(),
         "n_moves": int(state.get_move_count()),
+        "moves": moves,
+        "move_times": move_times,
         "time_white": round(t_white, 3),
         "time_black": round(t_black, 3),
     }

@@ -4,22 +4,8 @@ use rand::Rng;
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-fn heuristic_move(state: &GameState, _from: u8, to: u8) -> f32 {
-    let rows = state.rows as f32;
-    let cols = state.cols;
-    let to_row = (to / cols) as f32;
-    let advancement = if state.white_to_move {
-        to_row / (rows - 1.0)
-    } else {
-        (rows - 1.0 - to_row) / (rows - 1.0)
-    };
-    let is_capture = if state.white_to_move {
-        state.black & (1u64 << to) != 0
-    } else {
-        state.white & (1u64 << to) != 0
-    };
-    let capture_bonus = if is_capture { 0.2f32 } else { 0.0 };
-    (advancement + capture_bonus).min(1.0)
+fn heuristic_move(state: &GameState, from: u8, to: u8) -> f32 {
+    (crate::heuristic::move_ordering_score(state, from, to) as f32 / 1000.0).clamp(0.0, 1.0)
 }
 
 fn pb_score(visits: u32, wins: f32, h: f32, bias_weight: f32, log_parent: f64, c: f64) -> f64 {

@@ -12,8 +12,8 @@ def test_cross_validation():
     rng = random.Random(42)
 
     for game_num in range(1000):
-        rust = GameState(6, 6)
-        ref = RefGameState(6, 6)
+        rust = GameState(8, 8)
+        ref = RefGameState(8, 8)
 
         for _ in range(200):  # max moves per game
             rust_moves = sorted(rust.legal_moves())

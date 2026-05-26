@@ -1,5 +1,6 @@
 """Shared analysis utilities. Imported by all analysis_h*.py scripts."""
 import json
+import math
 from pathlib import Path
 
 import numpy as np
@@ -35,12 +36,45 @@ def wilson_ci(wins: int, n: int, alpha: float = 0.05) -> tuple[float, float, flo
     denom = 1 + z * z / n
     center = (p + z * z / (2 * n)) / denom
     margin = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denom
-    # Wilson CI center is shifted from p toward 0.5; for extreme p (e.g. all-wins
-    # or all-losses) the CI can clamp to a value past p. Ensure low <= p <= high
-    # so error bars relative to p are always non-negative.
     low = min(p, max(0.0, center - margin))
     high = max(p, min(1.0, center + margin))
     return p, low, high
+
+
+def significance_test(wins: int, n: int) -> float:
+    """Two-sided binomial test, H0: p = 0.5. Returns p-value."""
+    from scipy.stats import binomtest
+    return binomtest(wins, n, 0.5, alternative="two-sided").pvalue
+
+
+def cohens_h(p1: float, p2: float = 0.5) -> float:
+    """Cohen's h effect size for two proportions."""
+    return 2 * (math.asin(math.sqrt(p1)) - math.asin(math.sqrt(p2)))
+
+
+def game_length_stats(df: pd.DataFrame) -> dict:
+    """Compute median, IQR, mean of n_moves."""
+    lengths = df["n_moves"]
+    return {
+        "median": lengths.median(),
+        "q1": lengths.quantile(0.25),
+        "q3": lengths.quantile(0.75),
+        "iqr": lengths.quantile(0.75) - lengths.quantile(0.25),
+        "mean": lengths.mean(),
+    }
+
+
+def extract_move_times(df: pd.DataFrame) -> pd.DataFrame:
+    """Explode move_times into long-form: one row per (game, move_number, time)."""
+    rows = []
+    for _, game in df.iterrows():
+        for i, t in enumerate(game.get("move_times", []) or []):
+            rows.append({
+                "game_id": game.get("game_id"),
+                "move_number": i,
+                "decision_time": t,
+            })
+    return pd.DataFrame(rows)
 
 
 def save_fig(name: str):
@@ -74,5 +108,16 @@ def aggregate_winrate_by_iters(df: pd.DataFrame, agent_type: str) -> pd.DataFram
             if black_is and row["winner"] == "black":
                 wins += 1
         rate, lo, hi = wilson_ci(wins, n)
-        rows.append({"iterations": iters, "wins": wins, "n": n, "rate": rate, "ci_low": lo, "ci_high": hi})
+        p_val = significance_test(wins, n) if n > 0 else 1.0
+        effect = cohens_h(rate) if n > 0 else 0.0
+        rows.append({
+            "iterations": iters,
+            "wins": wins,
+            "n": n,
+            "rate": rate,
+            "ci_low": lo,
+            "ci_high": hi,
+            "p_value": p_val,
+            "cohens_h": effect,
+        })
     return pd.DataFrame(rows)
