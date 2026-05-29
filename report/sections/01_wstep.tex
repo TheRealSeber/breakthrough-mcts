@@ -4,8 +4,8 @@
 \subsection{Cel projektu}
 
 Niniejszy projekt zastosowuje algorytm Monte Carlo Tree Search (MCTS) z regułą
-selekcji UCT do gry \emph{Breakthrough} 6$\times$6, by przebadać empirycznie
-cztery hipotezy badawcze dotyczące skuteczności klasycznych rozszerzeń
+selekcji UCT do gry \emph{Breakthrough} 8$\times$8, by przebadać empirycznie
+sześć hipotez badawczych dotyczących skuteczności klasycznych rozszerzeń
 MCTS oraz porównania MCTS z deterministyczną heurystyką alpha-beta.
 Projekt obejmuje pełny pipeline badawczy: implementację silnika gry,
 implementację czterech agentów AI (vanilla UCT, RAVE, Progressive Bias,
@@ -32,23 +32,28 @@ ostatniego rzędu przeciwnika, (b) zbije wszystkie pionki przeciwnika,
 lub (c) uniemożliwi przeciwnikowi wykonanie jakiegokolwiek legalnego ruchu.
 W klasycznych regułach nie występują remisy.
 
-\paragraph{Modyfikacja: plansza 6$\times$6.}
-Zamiast klasycznej planszy 8$\times$8 użyliśmy 6$\times$6 z trzech powodów:
+\paragraph{Plansza 8$\times$8 (wariant klasyczny).}
+Używamy klasycznej planszy 8$\times$8 --- oryginalnego rozmiaru gry
+Breakthrough, zwycięskiego projektu konkursu 8$\times$8 Game Design
+Competition. Wybór ten motywujemy następująco:
 
 \begin{enumerate}[nosep]
-    \item \emph{Wydajność obliczeń.} Mniejsza plansza pozwala na większą
-          liczbę iteracji MCTS w tym samym czasie, co jest kluczowe przy
-          minimum 60 partiach na konfigurację oraz wielu hipotezach
-          do zweryfikowania.
-    \item \emph{Reprezentacja bitboardowa.} Plansza 6$\times$6 = 36 pól
-          mieści się w pojedynczym \texttt{u64}, upraszczając implementację
-          generatora ruchów (proste przesunięcia bitowe z maskami krawędzi).
-    \item \emph{Otwartość problemu.} Breakthrough 6$\times$6 nie został
-          rozwiązany (nie istnieje znany ,,perfekcyjny gracz''),
-          co czyni go atrakcyjnym dla badań empirycznych. Dla porównania,
-          5$\times$5 zostało rozwiązane w \cite{saffidine2011solving}
-          (białe wygrywają), a 8$\times$8 jest poza zasięgiem obecnych
-          solwerów.
+    \item \emph{Otwartość problemu.} Breakthrough 8$\times$8 nie został
+          rozwiązany --- nie istnieje znany ,,perfekcyjny gracz''. Dla
+          porównania, warianty do 6$\times$5 rozwiązali Saffidine i in.\
+          \cite{saffidine2011solving}, a planszę 6$\times$6 --- Björnsson i in.\
+          \cite{bjornsson2026solving} (w obu przypadkach wygrywa pierwszy
+          gracz); klasyczna 8$\times$8 pozostaje poza zasięgiem obecnych
+          solwerów, co czyni ją atrakcyjną dla badań porównawczych bez
+          znanego optimum.
+    \item \emph{Reprezentacja bitboardowa.} Plansza 8$\times$8 = 64 pola
+          mieści się dokładnie w pojedynczym \texttt{u64}, co pozwala na
+          wydajną implementację generatora ruchów (przesunięcia bitowe
+          z maskami krawędzi).
+    \item \emph{Umiarkowany branching factor.} Typowa pozycja 8$\times$8 daje
+          15--30 legalnych ruchów przy głębokości partii 40--80 ruchów ---
+          na tyle mała, by drzewo MCTS było dobrze pokrywane symulacjami,
+          a jednocześnie nietrywialna strategicznie.
 \end{enumerate}
 
 \subsection{Dlaczego Breakthrough nadaje się jako benchmark MCTS}
@@ -61,17 +66,17 @@ Breakthrough spełnia pożądane charakterystyki problemu testowego dla MCTS:
     \item \emph{Niebanalna strategicznie.} Mimo prostych zasad, wymaga planowania
           na kilka ruchów naprzód: budowanie łańcuchów pionków, kontrola
           krytycznych kolumn, poświęcenia dla osiągnięcia przełomu (stąd nazwa).
-    \item \emph{Branching factor 10--20.} Wystarczająco mały by drzewo było
+    \item \emph{Branching factor 15--30.} Wystarczająco mały by drzewo było
           dobrze pokrywane symulacjami, wystarczająco duży by przeszukiwanie
           alpha-beta nie eksplodowało.
-    \item \emph{Głębokość 20--40 półruchów.} Symulacje losowe trwają $\sim$milisekundy.
+    \item \emph{Głębokość 40--80 półruchów.} Symulacje losowe trwają $\sim$milisekundy.
     \item \emph{Niszowość.} Mniej zbadana niż Go czy szachy --- mniejsze
           ryzyko, że ,,wszystko już zostało zrobione''.
 \end{itemize}
 
 \subsection{Hipotezy badawcze}
 
-W projekcie weryfikujemy cztery hipotezy:
+W projekcie weryfikujemy sześć hipotez:
 
 \begin{itemize}[nosep]
     \item[\textbf{H1}] \emph{UCT z RAVE istotnie poprawia jakość gry względem
@@ -91,12 +96,21 @@ W projekcie weryfikujemy cztery hipotezy:
           a mocą obliczeniową. Testujemy istnienie i położenie punktu
           krzyżowania (cross-over).
 
-    \item[\textbf{H4}] \emph{Białe (pierwszy gracz) mają istotną statystycznie
-          przewagę w Breakthrough 6$\times$6 przy MCTS równej siły, malejącą
-          w kierunku planszy 8$\times$8.} Hipoteza własna, testowana na trzech
-          rozmiarach: 6$\times$6, 6$\times$8, 8$\times$8. Motywowana intuicją,
-          że na mniejszej planszy pierwsza ruchowa przewaga ,,szybciej się
-          materializuje''.
+    \item[\textbf{H4}] \emph{Białe (pierwszy gracz) mają niewielką przewagę
+          w Breakthrough 8$\times$8 przy MCTS równej siły.} Hipoteza analogiczna
+          do obserwacji z szachów; testowana w symetrycznych meczach
+          UCT vs UCT na planszy 8$\times$8.
+
+    \item[\textbf{H5}] \emph{Stała eksploracji $c$ w UCT ma nieliniowy wpływ
+          na siłę gry.} Istnieje optymalna wartość $c^\star$ maksymalizująca
+          win-rate; zarówno zbyt niska (nadmierna eksploatacja), jak i zbyt
+          wysoka (nadmierna eksploracja) wartość $c$ prowadzi do spadku
+          skuteczności.
+
+    \item[\textbf{H6}] \emph{Czas podejmowania decyzji MCTS zmienia się
+          w trakcie partii.} Przy stałym budżecie iteracji średni czas na ruch
+          zależy od fazy gry (numeru ruchu) --- testujemy, czy rośnie
+          w środkowej fazie gry, gdy branching factor jest największy.
 \end{itemize}
 
 \subsection{Struktura raportu}

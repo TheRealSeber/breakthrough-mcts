@@ -12,9 +12,9 @@ i odpowiedzialności merytorycznej po stronie autorów.
 Wszystkie kluczowe decyzje projektu zostały podjęte przez autorów:
 
 \begin{itemize}[nosep]
-    \item \emph{Wybór gry} (Breakthrough) i jej modyfikacji (plansza
-          6$\times$6) wraz z uzasadnieniem metodologicznym.
-    \item \emph{Sformułowanie hipotez badawczych} H1--H4 oraz dobór
+    \item \emph{Wybór gry} (Breakthrough) na klasycznej planszy 8$\times$8
+          wraz z uzasadnieniem metodologicznym.
+    \item \emph{Sformułowanie hipotez badawczych} H1--H6 oraz dobór
           rozszerzeń MCTS do porównania (RAVE, Progressive Bias, alpha-beta).
     \item \emph{Wybór hiperparametrów} (budżety iteracji, wartość $b^2$ dla RAVE,
           waga bias dla Progressive Bias, głębokość alpha-beta) oraz ich
@@ -64,7 +64,7 @@ Korzystanie z LLM wprowadza ryzyka, które staraliśmy się minimalizować:
           (cross-validation 1000 partii Rust vs Python) i eksperymentalne
           sprawdzenie zachowania (parametr sweep wykrył błąd RAVE,
           którego nie ujawniłaby sama inspekcja kodu).
-    \item \emph{Stronniczość interpretacji:} negatywne wyniki (H1, H4
-          sfalsyfikowane) raportujemy uczciwie z przedziałami ufności,
-          bez naciągania danych ku zgodności z hipotezami.
+    \item \emph{Stronniczość interpretacji:} negatywne wyniki (H1, H4, H5, H6
+          sfalsyfikowane, H2 niejednoznaczna) raportujemy uczciwie z przedziałami
+          ufności, bez naciągania danych ku zgodności z hipotezami.
 \end{itemize}

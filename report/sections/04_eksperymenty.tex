@@ -1,8 +1,9 @@
 \section{Plan eksperymentów}
 \label{sec:eksperymenty}
 
-W tej sekcji przedstawiamy konfigurację każdego z czterech eksperymentów
-odpowiadających hipotezom H1--H4 oraz wspólną metodologię statystyczną.
+W tej sekcji przedstawiamy konfigurację każdego z sześciu eksperymentów
+odpowiadających hipotezom H1--H6 oraz wspólną metodologię statystyczną.
+Wszystkie eksperymenty prowadzone są na klasycznej planszy 8$\times$8.
 
 \subsection{Wspólna konfiguracja}
 
@@ -28,13 +29,13 @@ Wszystkie eksperymenty mają tę samą strukturę:
 \subsection{H1: RAVE vs vanilla UCT}
 
 \paragraph{Konfiguracja.}
-6 agentów: \{UCT, RAVE\} $\times$ \{1000, 5000, 10\,000\} iteracji.
+8 agentów: \{UCT, RAVE\} $\times$ \{5000, 10\,000, 50\,000, 100\,000\} iteracji.
 Stała eksploracji $c = \sqrt{2}$.
 Hiperparametr RAVE: $b^2 = 0{,}01$ (dobrany empirycznie ---
 patrz sekcja~\ref{sec:llm}).
 
-\paragraph{Liczba partii.} 60 partii na uporządkowaną parę
-$\Rightarrow$ 6 agentów $\times$ 5 par = 30 par; łącznie 900 partii.
+\paragraph{Liczba partii.} 100 partii na parę agentów (50 na każdą stronę)
+$\Rightarrow$ $\binom{8}{2} = 28$ par; łącznie 2800 partii.
 Master seed: 42.
 
 \paragraph{Oczekiwania.} Zgodnie z hipotezą H1: RAVE wygrywa z UCT
@@ -43,12 +44,12 @@ przy każdym z testowanych budżetów (oczekiwana poprawa 5--15 pp).
 \subsection{H2: Progressive Bias vs vanilla UCT}
 
 \paragraph{Konfiguracja.}
-6 agentów: \{UCT, Progressive Bias\} $\times$ \{1000, 5000, 10\,000\} iteracji.
+8 agentów: \{UCT, Progressive Bias\} $\times$ \{5000, 10\,000, 50\,000, 100\,000\} iteracji.
 Stała eksploracji $c = \sqrt{2}$.
 Waga bias termu: $w_{\text{bias}} = 1{,}0$.
 
-\paragraph{Liczba partii.} 60 partii na uporządkowaną parę, łącznie 900 partii.
-Master seed: 43.
+\paragraph{Liczba partii.} 100 partii na parę agentów
+$\Rightarrow$ $\binom{8}{2} = 28$ par; łącznie 2800 partii. Master seed: 43.
 
 \paragraph{Oczekiwania.} Progressive Bias wygrywa z UCT przy każdym budżecie,
 z możliwie większą przewagą przy niskich budżetach (gdzie heurystyka ratuje
@@ -56,17 +57,11 @@ brak informacji statystycznej).
 
 \subsection{H3: Heurystyka vs vanilla UCT}
 
-\paragraph{Konfiguracja --- eksperyment główny.}
+\paragraph{Konfiguracja.}
 Agenci: heurystyka alpha-beta z głębokością 5 oraz UCT z budżetami
-\{200, 500, 1000, 5000, 10\,000\}. 60 partii na parę
-$\Rightarrow$ 6 agentów $\times$ 5 par = 30 par; łącznie 900 partii.
+\{500, 1000, 5000, 10\,000, 50\,000, 100\,000\}. 100 partii na parę
+$\Rightarrow$ $\binom{7}{2} = 21$ par; łącznie 2100 partii.
 Master seed: 44.
-
-\paragraph{Konfiguracja --- eksperyment rozszerzony.}
-Po zaobserwowaniu, że heurystyka wygrywała 100\% w eksperymencie głównym,
-uruchomiliśmy dodatkowy eksperyment z większymi budżetami UCT:
-\{20\,000, 50\,000, 100\,000\}. 60 partii na parę $\Rightarrow$ 4 agentów
-$\times$ 3 pary = 12 par; łącznie 360 partii. Master seed: 144.
 
 \paragraph{Oczekiwania.}
 Pierwsza część hipotezy: heurystyka wygrywa z UCT przy niskich budżetach
@@ -74,24 +69,44 @@ Pierwsza część hipotezy: heurystyka wygrywa z UCT przy niskich budżetach
 Druga część: heurystyka przegrywa z UCT przy wysokich budżetach
 ($\geq$ 50\,000 iteracji), istnieje wyraźny punkt krzyżowania (cross-over).
 
-\subsection{H4: Przewaga pierwszego gracza vs rozmiar planszy}
+\subsection{H4: Przewaga pierwszego gracza}
 
 \paragraph{Konfiguracja.}
-Po dwóch tych samych UCT(5000) jako biały i czarny, na trzech rozmiarach
-planszy: 6$\times$6, 6$\times$8, 8$\times$8. Zgodnie z konwencją projektu,
-6$\times$8 oznacza planszę o 6 rzędach i 8 kolumnach (szerszą).
-
-Pierwsza wersja eksperymentu używała 100 partii na rozmiar planszy.
-Po stwierdzeniu, że 95\% CI miały szerokość ok. 19 pp i nie pozwalały
-na konkluzje, eksperyment został powtórzony z \textbf{500 partii na rozmiar
-planszy} (CI ok. 9 pp). Master seed: 45. Łącznie 1500 partii.
+Symetryczne mecze UCT(5000) vs UCT(5000) na planszy 8$\times$8 --- ten sam
+agent (identyczny budżet i hiperparametry) gra jako biały i jako czarny,
+przy deterministycznie różnych seedach. Master seed: 45. Łącznie 500 partii
+(CI win-rate białych ok. $\pm$4,4 pp).
 
 \paragraph{Oczekiwania.}
-Białe (pierwszy gracz) mają istotną przewagę w 6$\times$6, malejącą
-w kierunku 8$\times$8. Konkretne oczekiwania:
-6$\times$6: białe $>$ 55\% wygranych;
-6$\times$8: białe $\sim$ 50--55\%;
-8$\times$8: białe $\sim$ 50\%.
+Białe (pierwszy gracz) mają niewielką, lecz istotną statystycznie przewagę
+($>$ 50\% wygranych), analogicznie do obserwacji z szachów.
+
+\subsection{H5: Strojenie stałej eksploracji $c$}
+
+\paragraph{Konfiguracja.}
+5 agentów UCT z budżetem 10\,000 iteracji, różniących się jedynie stałą
+eksploracji $c \in \{0{,}5,\ 1{,}0,\ 1{,}5,\ 2{,}0,\ 3{,}0\}$. Turniej
+round-robin (każdy $c$ przeciwko każdemu) wyłania względną siłę poszczególnych
+wartości. 100 partii na parę $\Rightarrow$ $\binom{5}{2} = 10$ par;
+łącznie 1000 partii. Master seed: 46.
+
+\paragraph{Oczekiwania.}
+Istnieje optymalna wartość $c^\star$; win-rate jako funkcja $c$ ma kształt
+odwróconego U (spadek przy zbyt małym i zbyt dużym $c$). Wartość teoretyczna
+$c = \sqrt{2} \approx 1{,}41$ jest naturalnym kandydatem na okolice optimum.
+
+\subsection{H6: Czas decyzji w funkcji numeru ruchu}
+
+\paragraph{Konfiguracja.}
+3 agenci UCT z budżetami \{5000, 10\,000, 50\,000\} iteracji (różne budżety,
+by zbadać skalowanie czasu). Dla każdej partii rejestrowany jest czas decyzji
+osobno dla każdego ruchu. 100 partii na parę $\Rightarrow$ $\binom{3}{2} = 3$
+pary; łącznie 300 partii. Master seed: 47.
+
+\paragraph{Oczekiwania.}
+Przy stałym budżecie iteracji średni czas na ruch rośnie w środkowej fazie
+gry (ruchy 15--40), gdy branching factor jest największy, i maleje w otwarciu
+oraz końcówce.
 
 \subsection{Metodologia statystyczna}
 
@@ -116,9 +131,10 @@ eksperyment z dokładnie tymi samymi wynikami:
 \begin{verbatim}
 python -m breakthrough.experiments.run_h1  # H1
 python -m breakthrough.experiments.run_h2  # H2
-python -m breakthrough.experiments.run_h3  # H3 główny
-python -m breakthrough.experiments.run_h3_extended  # H3 rozszerzony
+python -m breakthrough.experiments.run_h3  # H3
 python -m breakthrough.experiments.run_h4  # H4
+python -m breakthrough.experiments.run_h5  # H5
+python -m breakthrough.experiments.run_h6  # H6
 \end{verbatim}
 Generator liczb pseudolosowych używany w MCTS i symulacjach to
 Xoshiro256++ z biblioteki \verb|rand_xoshiro| \cite{vigna2017}, seedowany

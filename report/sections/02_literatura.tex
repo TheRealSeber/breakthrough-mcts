@@ -77,11 +77,12 @@ tables, virtual loss dla zrównoleglenia, decisive/anti-decisive moves
 \paragraph{Status rozwiązaniowy gry.}
 Saffidine et al.~\cite{saffidine2011solving} opracowali techniki ,,race
 patterns'' i Job-Level Proof Number Search, pozwalające im rozwiązać
-Breakthrough do planszy 5$\times$5 włącznie. Ustalili, że dla planszy 5$\times$5
-przy perfekcyjnej grze \emph{białe wygrywają}. Dla 6$\times$6 i większych
-gra pozostaje nierozwiązana --- nie ma znanego solwera o ograniczonych
-zasobach pamięciowych zdolnego do pełnego przeszukania drzewa, mimo że
-gra jest deterministyczna. To czyni Breakthrough 6$\times$6 atrakcyjnym
+warianty Breakthrough do planszy 6$\times$5 włącznie; we wszystkich
+\emph{wygrywa pierwszy gracz}. Niedawno Björnsson et al.~\cite{bjornsson2026solving}
+rozwiązali również planszę 6$\times$6 (także na korzyść pierwszego gracza).
+Klasyczna plansza 8$\times$8 pozostaje natomiast nierozwiązana --- nie ma
+znanego solwera o ograniczonych zasobach pamięciowych zdolnego do pełnego
+przeszukania jej drzewa. To czyni Breakthrough 8$\times$8 atrakcyjnym
 benchmarkiem: nie istnieje wyrocznia ,,perfekcyjnego gracza'' definiująca
 sufit jakości, więc porównanie wariantów MCTS ma realną wartość badawczą.
 
@@ -94,18 +95,18 @@ zbite tylko z jednej strony zamiast dwóch). Te elementy stanowią podstawę
 naszej implementacji \texttt{HeuristicAgent}.
 
 \paragraph{Branching factor i głębokość.}
-W typowej pozycji Breakthrough 6$\times$6 liczba legalnych ruchów wynosi
-około 10--20, a głębokość partii (przy losowej grze) to 30--40 półruchów.
-Z naszych eksperymentów (sekcja~\ref{sec:wyniki}): średnia długość
-partii UCT vs UCT to 33 ruchy dla 6$\times$6, 41 dla 6$\times$8 i 59 dla
-8$\times$8. Branching factor zalicza Breakthrough do gier ,,małych'' z punktu
-widzenia MCTS --- znacznie mniej niż Go (200--400), porównywalnie do Hex
-(odpowiadający rozmiar $11 \times 11$ ma branching ok. 80--100).
+W typowej pozycji Breakthrough 8$\times$8 liczba legalnych ruchów wynosi
+około 15--30, a głębokość partii (przy losowej grze) to 40--80 półruchów.
+Z naszych eksperymentów (sekcja~\ref{sec:wyniki}) średnia długość partii
+UCT vs UCT na planszy 8$\times$8 wynosi ok.\ 57 ruchów. Branching factor
+zalicza Breakthrough do gier ,,małych'' z punktu widzenia MCTS ---
+znacznie mniej niż Go (200--400), porównywalnie do Hex (odpowiadający
+rozmiar $11 \times 11$ ma branching ok. 80--100).
 
-\paragraph{Brak literatury na temat MCTS w Breakthrough 6$\times$6.}
-Większość prac dotyczących MCTS w Breakthrough koncentruje się na 8$\times$8
-(klasyczna wersja) lub 5$\times$5 (rozwiązana). Wybór 6$\times$6 jako rozmiaru
-do badań tworzy luki literaturowe, które niniejszy projekt częściowo wypełnia.
-Wnioski dotyczące skuteczności RAVE i heurystyki alpha-beta w 6$\times$6
-mogą być predykcyjne dla większych rozmiarów planszy --- choć potwierdzenie
-tego wymagałoby dodatkowych eksperymentów.
+\paragraph{Status badawczy Breakthrough 8$\times$8.}
+Klasyczna plansza 8$\times$8 pozostaje \emph{nierozwiązana} --- mimo postępów
+w rozwiązywaniu mniejszych wariantów (do 6$\times$5 \cite{saffidine2011solving}
+oraz 6$\times$6 \cite{bjornsson2026solving}), dla 8$\times$8 nie istnieje znany
+,,perfekcyjny gracz''. Brak odniesienia do optimum czyni z 8$\times$8
+wdzięczny poligon dla \emph{porównawczych} badań empirycznych nad wariantami
+MCTS, gdzie miarą jest względna siła agentów, a nie odległość od gry idealnej.

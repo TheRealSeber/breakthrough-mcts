@@ -10,8 +10,8 @@ Stan gry Breakthrough w naszej implementacji jest reprezentowany przez parę
 bitboardów $u_{64}$: jeden dla pionków białych, jeden dla czarnych. Bit $i$
 odpowiada polu $i = r \cdot c + k$, gdzie $r$ to numer rzędu (0-indeksowany
 od dołu), $k$ to numer kolumny, a $c$ to liczba kolumn planszy. Dla planszy
-6$\times$6 wszystkie 36 pól mieszczą się w jednym \texttt{u64}, dla 8$\times$8
-zajmujemy całe 64 bity. Stan gry zawiera również:
+8$\times$8 wszystkie 64 pola zajmują dokładnie całą szerokość \texttt{u64}.
+Stan gry zawiera również:
 flagę \texttt{white\_to\_move};
 licznik \texttt{move\_count};
 wartość hash Zobrist $\in \{0, \ldots, 2^{64}-1\}$ zaktualizowaną przyrostowo;
@@ -149,42 +149,53 @@ liczby symulacji --- przy rosnącej $n(c)$ statystyki Q-UCT przejmują
 sterowanie selekcją.
 
 \paragraph{Funkcja heurystyczna $H$.}
-Dla ruchu z pola $f$ na pole $t$ przy graczu $p$:
+Składnik bias dla danego ruchu wyznaczamy z heurystyki porządkowania ruchów
+$\pi(m)$ (ta sama, której używa gracz alpha-beta --- Algorytm~2), znormalizowanej
+do przedziału $[0, 1]$:
 \begin{equation}
-H(c) = \min\!\left(1{,}0, \quad \text{adv}(t, p) + b_{\text{cap}} \cdot [\text{ruch jest biciem}]\right)
+H(m) = \mathrm{clip}_{[0,1]}\!\left( \pi(m) / 1000 \right),
 \end{equation}
-gdzie $\text{adv}(t, p) = t_{\text{row}} / (R-1)$ dla białego i $(R-1-t_{\text{row}}) / (R-1)$
-dla czarnego (zaawansowanie pionka znormalizowane do $[0, 1]$ względem rzędu
-docelowego), a $b_{\text{cap}} = 0{,}2$ to bonus za bicie. $R$ to liczba
-rzędów planszy.
+gdzie priorytet $\pi(m)$ akumuluje się następująco: ruch wygrywający (dojście
+do ostatniego rzędu) $\to 1000$; bicie $\to +50$ oraz $+5\cdot\text{zaawansowanie}$
+zbijanego pionka; pole docelowe bronione po ruchu $\to +10$; ruch do przodu
+$\to +2\cdot\text{zaawansowanie}$ pola docelowego. Dzięki wspólnemu $\pi$ ta sama
+wiedza domenowa zasila zarówno Progressive Bias, jak i porządkowanie ruchów
+w alpha-beta.
 
 Eksponowany jako \texttt{ProgressiveBiasAgent(iterations, c, bias\_weight, seed)}.
 
 \subsection{Heurystyczny gracz alpha-beta}
 
-\paragraph{Funkcja ewaluacji.}
+\paragraph{Funkcja ewaluacji (Algorytm~1 konspektu).}
 $f: \text{State} \times \text{Player} \to \mathbb{R}$, dodatnia gdy korzystna
-dla \emph{Player}:
-\begin{equation}
-f(s, p) = \pm \left( w_{\text{adv}} \cdot \Delta_{\text{advancement}} + w_{\text{mat}} \cdot \Delta_{\text{material}} + w_{\text{mob}} \cdot \Delta_{\text{mobility}} \right)
-\end{equation}
-gdzie:
+dla \emph{Player}. Ocena dla każdej strony sumuje wkład pojedynczych pionków
+oraz czynniki globalne; dla strony białej $v_W = \sum_p a_p \cdot (1 + 0{,}3\,d_p)
+\cdot k_p \cdot f_p \cdot g_p$, gdzie dla pionka $p$ w rzędzie $r$, kolumnie $c$:
 \begin{itemize}[nosep]
-    \item $\Delta_{\text{advancement}} = \sum_{\text{pionków białych}} \frac{r}{R-1} - \sum_{\text{pionków czarnych}} \frac{R-1-r}{R-1}$ ---
-          różnica zaawansowania pionków (znormalizowana do rzędu),
-    \item $\Delta_{\text{material}}$ = liczba pionków białych $-$ liczba pionków czarnych,
-    \item $\Delta_{\text{mobility}} = |\text{legalne ruchy}|$ z znakiem (+ jeśli na ruchu jest biały, $-$ wpp).
+    \item $a_p$ --- waga zaawansowania, \emph{wykładnicza} względem rzędu:
+          $[1, 1, 2, 4, 8, 16, 32, 64]$ (pionek bliżej linii awansu jest
+          wielokrotnie cenniejszy),
+    \item $d_p \in \{0,1,2\}$ --- liczba własnych obrońców na przekątnych za pionkiem,
+    \item $k_p$ --- bonus centralności ($1{,}15$ dla kolumn $\{3,4\}$, $1{,}05$ dla $\{2,5\}$, inaczej $1{,}0$),
+    \item $f_p$ --- $1{,}5$ przy swobodnej ścieżce awansu (brak pionka przeciwnika
+          w rozszerzającym się trójkącie przed pionkiem), inaczej $1{,}0$,
+    \item $g_p$ --- $0{,}8$ przy izolacji (brak własnych sąsiadów), inaczej $1{,}0$.
 \end{itemize}
-Wagi: $w_{\text{adv}} = 1{,}0$, $w_{\text{mat}} = 3{,}0$, $w_{\text{mob}} = 0{,}1$
-(dobrane na podstawie szacunków z literatury \cite{lorentz2011breakthrough}
-i kalibracji wstępnej). Dla terminala: $\pm 1000$ (wartość dominująca pozostałe składniki).
+Dodatkowo grożba natychmiastowego przebicia (pionek w przedostatnim rzędzie
+z legalnym ruchem na rząd awansu) dodaje $+200$. Czynniki globalne:
+$f = (v_W - v_B) + 0{,}3 \cdot \Delta_{\text{mobilność}} + 2{,}0 \cdot \Delta_{\text{materiał}}$,
+gdzie $\Delta_{\text{mobilność}}$ to różnica liczby legalnych ruchów obu stron,
+a $\Delta_{\text{materiał}}$ --- różnica liczby pionków. Dla stanu terminalnego
+zwracamy $\pm\infty$.
 
-\paragraph{Przeszukiwanie alpha-beta.}
+\paragraph{Przeszukiwanie alpha-beta (Algorytmy 2--4).}
 Klasyczny negamax z odcięciem $\alpha\beta$, głębokość 5 półruchów.
-Brak heurystyk porządkujących ruchy (move ordering) --- niepotrzebne
-dla 6$\times$6 (depth 5 zajmuje $\sim$30 ms).
+Ruchy są \emph{porządkowane} malejąco wg heurystyki $\pi(m)$ (Algorytm~2:
+ruchy wygrywające, bicia zaawansowanych pionków, ruchy bezpieczne i do przodu
+najpierw), co przyspiesza odcięcia. Dzięki wydajnej implementacji w Ruście
+wybór ruchu na planszy 8$\times$8 zajmuje $\sim$10 ms.
 
-Eksponowany jako \texttt{HeuristicAgent(depth=5, weights=None)}.
+Eksponowany jako \texttt{HeuristicAgent(depth=5)}.
 
 \subsection{Architektura implementacji}
 
