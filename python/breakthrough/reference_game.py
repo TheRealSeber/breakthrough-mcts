@@ -33,15 +33,12 @@ class RefGameState:
                 nr = r + dr
                 if not (0 <= nr < self.rows):
                     continue
-                # Straight: must be empty
                 if self.board[nr][c] is None:
                     moves.append((from_sq, nr * self.cols + c))
-                # Diagonal left
                 if c > 0:
                     target = self.board[nr][c - 1]
                     if target is None or target != player:
                         moves.append((from_sq, nr * self.cols + (c - 1)))
-                # Diagonal right
                 if c < self.cols - 1:
                     target = self.board[nr][c + 1]
                     if target is None or target != player:
@@ -60,20 +57,16 @@ class RefGameState:
         return new
 
     def winner(self) -> str | None:
-        # White wins by reaching last row
         if any(self.board[self.rows - 1][c] == 'W' for c in range(self.cols)):
             return 'white'
-        # Black wins by reaching row 0
         if any(self.board[0][c] == 'B' for c in range(self.cols)):
             return 'black'
-        # Win by capturing all opponent pieces
         whites = sum(1 for r in range(self.rows) for c in range(self.cols) if self.board[r][c] == 'W')
         blacks = sum(1 for r in range(self.rows) for c in range(self.cols) if self.board[r][c] == 'B')
         if blacks == 0:
             return 'white'
         if whites == 0:
             return 'black'
-        # Win by no legal moves
         if not self.legal_moves():
             return 'black' if self.white_to_move else 'white'
         return None

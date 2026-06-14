@@ -1,7 +1,7 @@
 """
-Cross-validation gate: Rust and Python implementations must agree on
-legal moves, winner, is_terminal, and board representation for 1000
-random games. Run this before collecting any experiment data.
+Checks that the Rust and Python engines behave the same:
+plays 1000 random games and compares legal moves, winner,
+is_terminal, and board after every move.
 """
 import random
 from breakthrough import GameState
@@ -15,7 +15,7 @@ def test_cross_validation():
         rust = GameState(8, 8)
         ref = RefGameState(8, 8)
 
-        for _ in range(200):  # max moves per game
+        for _ in range(200): 
             rust_moves = sorted(rust.legal_moves())
             ref_moves = sorted(ref.legal_moves())
 

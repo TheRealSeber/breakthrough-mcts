@@ -37,7 +37,6 @@ fn simulate(state: &GameState, rng: &mut Xoshiro256PlusPlus) -> bool {
 fn backprop(pool: &mut Vec<UctNode>, mut idx: usize, winner: bool) {
     loop {
         pool[idx].visits += 1;
-        // wins counted from perspective of player who moved to this node
         if winner != pool[idx].white_to_move {
             pool[idx].wins += 1.0;
         }
@@ -110,7 +109,6 @@ impl UctAgent {
         });
 
         for _ in 0..self.iterations {
-            // Selection: descend until unexpanded moves exist or terminal
             let (mut leaf_idx, leaf_state) = {
                 let mut idx = 0usize;
                 let mut s = state.clone();
@@ -118,7 +116,6 @@ impl UctAgent {
                     if !pool[idx].unexpanded.is_empty() || pool[idx].children.is_empty() {
                         break;
                     }
-                    // Fully expanded non-terminal: pick best child by UCB1
                     let best = {
                         let parent = &pool[idx];
                         let log_n = (parent.visits as f64).ln();
@@ -140,7 +137,6 @@ impl UctAgent {
                 (idx, s)
             };
 
-            // Expansion + Simulation
             let winner = if let Some(w) = leaf_state.winner_raw() {
                 w
             } else {
@@ -153,7 +149,6 @@ impl UctAgent {
             backprop(&mut pool, leaf_idx, winner);
         }
 
-        // Return move of most-visited child of root
         let best = *pool[0]
             .children
             .iter()

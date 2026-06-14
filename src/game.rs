@@ -272,12 +272,6 @@ mod tests {
         let g = GameState::new(6, 6);
         let moves = g.generate_moves_raw();
         assert!(!moves.is_empty(), "should have legal moves at start");
-        // Hand-counted: row 1 (advancing front) pieces only — row 0 pieces are blocked
-        // by row 1 own pieces both straight and diagonally.
-        // col 0: straight + diag_right = 2 moves
-        // col 1-4: straight + diag_left + diag_right = 3 each (4 pieces × 3 = 12)
-        // col 5: straight + diag_left = 2 moves
-        // Total = 2 + 12 + 2 = 16 moves
         assert_eq!(moves.len(), 16, "expected 16 moves at start");
     }
 
@@ -324,15 +318,10 @@ mod tests {
 
     #[test]
     fn from_string_rejects_malformed_input() {
-        // Wrong line count
         assert!(GameState::from_string("WWWWWW\n", 6, 6).is_err());
-        // Wrong row width
         assert!(GameState::from_string("WWW\nWWWWWW\n......\n......\nBBBBBB\nBBBBBB\nW", 6, 6).is_err());
-        // Bad character
         assert!(GameState::from_string("WWWWWX\nWWWWWW\n......\n......\nBBBBBB\nBBBBBB\nW", 6, 6).is_err());
-        // Bad side-to-move marker
         assert!(GameState::from_string("WWWWWW\nWWWWWW\n......\n......\nBBBBBB\nBBBBBB\nx", 6, 6).is_err());
-        // Valid round-trip
         let g = GameState::new(6, 6);
         let s = g.to_string();
         let g2 = GameState::from_string(&s, 6, 6).unwrap();

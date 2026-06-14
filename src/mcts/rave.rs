@@ -20,8 +20,6 @@ struct RaveNode {
     amaf: HashMap<u16, (u32, f32)>,
 }
 
-// β formula uses BOTH visit count n and AMAF count ñ. When AMAF data is
-// missing (ñ=0), β=0 → pure UCT. When AMAF is rich and n is small, β is high.
 fn rave_score(
     visits: u32,
     wins: f32,
@@ -42,7 +40,7 @@ fn rave_score(
             let b = n_tilde / (n + n_tilde + 4.0 * n * n_tilde * rave_b_squared);
             (qr, b)
         }
-        _ => (0.0, 0.0), // no AMAF data → pure UCT
+        _ => (0.0, 0.0),
     };
     (1.0 - beta) * q_uct + beta * q_rave + c * (log_parent_visits / n).sqrt()
 }
@@ -104,10 +102,6 @@ pub struct RaveAgent {
 
 #[pymethods]
 impl RaveAgent {
-    // rave_k kept as positional name for back-compat with experiment configs;
-    // semantically it's now b² in Silver's formula β = ñ / (n + ñ + 4·n·ñ·b²).
-    // Default 0.01 chosen empirically for Breakthrough 6×6 (Go-tuned 1e-4 puts
-    // too much weight on noisy rollout AMAF; larger b² gives β a faster decay).
     #[new]
     #[pyo3(signature = (iterations, c = 1.4142135623730951, rave_k = 0.01, seed = None))]
     pub fn new(iterations: usize, c: f64, rave_k: f64, seed: Option<u64>) -> Self {
@@ -137,10 +131,8 @@ impl RaveAgent {
         });
 
         for _ in 0..self.iterations {
-            // Selection: walk down, recording the path so AMAF backprop has
-            // the in-tree moves available at every ancestor.
             let mut path_idx: Vec<usize> = vec![0];
-            let mut path_moves: Vec<(bool, u16)> = Vec::new(); // (mover_was_white, mv_key)
+            let mut path_moves: Vec<(bool, u16)> = Vec::new();
             let mut s = state.clone();
             let mut idx = 0usize;
 
@@ -202,9 +194,6 @@ impl RaveAgent {
                 simulate_trace(&child_state, &mut self.rng)
             };
 
-            // Backprop with full trace at each level. At node path_idx[k], the
-            // AMAF-relevant moves are path_moves[k..] (tree moves below this
-            // node, plus expansion move) plus sim_trace.
             let total_path_moves = path_moves.len();
             for k in 0..path_idx.len() {
                 let node_idx = path_idx[k];

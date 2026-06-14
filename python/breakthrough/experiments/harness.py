@@ -102,13 +102,11 @@ def run_experiment(exp: Experiment) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     jsonl_path = out_dir / "games.jsonl"
 
-    # Save experiment config
     meta = asdict(exp)
     meta["output_dir"] = str(exp.output_dir)
     with open(out_dir / "experiment_meta.json", "w") as f:
         json.dump(meta, f, indent=2)
 
-    # Build job list (all ordered pairs i->j with i!=j; n_games_per_pair / 2 per direction)
     jobs = []
     n_per_side = exp.n_games_per_pair // 2
     for i in range(len(exp.agents)):
