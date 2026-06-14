@@ -1,0 +1,51 @@
+{
+  "name": "h5_c_tuning",
+  "agents": [
+    {
+      "type": "uct",
+      "iterations": 10000,
+      "c": 0.5,
+      "rave_k": 0.01,
+      "bias_weight": 1.0,
+      "depth": 5
+    },
+    {
+      "type": "uct",
+      "iterations": 10000,
+      "c": 1.0,
+      "rave_k": 0.01,
+      "bias_weight": 1.0,
+      "depth": 5
+    },
+    {
+      "type": "uct",
+      "iterations": 10000,
+      "c": 1.5,
+      "rave_k": 0.01,
+      "bias_weight": 1.0,
+      "depth": 5
+    },
+    {
+      "type": "uct",
+      "iterations": 10000,
+      "c": 2.0,
+      "rave_k": 0.01,
+      "bias_weight": 1.0,
+      "depth": 5
+    },
+    {
+      "type": "uct",
+      "iterations": 10000,
+      "c": 3.0,
+      "rave_k": 0.01,
+      "bias_weight": 1.0,
+      "depth": 5
+    }
+  ],
+  "n_games_per_pair": 100,
+  "master_seed": 46,
+  "parallel": -1,
+  "output_dir": "results",
+  "board_rows": 8,
+  "board_cols": 8
+}
