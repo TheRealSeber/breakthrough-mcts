@@ -38,17 +38,20 @@ nie podnosi.
 \paragraph{H3 (heurystyka pokonuje MCTS przy niskim budżecie, lecz przegrywa
 przy wysokim) --- \textsc{częściowo potwierdzona}.}
 Heurystyka oparta na alpha-beta z głębokością 5 \emph{miażdży} agenta UCT
-w całym testowanym zakresie: 99\% wygranych przy UCT(500), 100\% przy UCT(1000),
-98\% przy UCT(5000) i UCT(10\,000) oraz 94\% przy UCT(50\,000) i UCT(100\,000).
+w całym testowanym zakresie: 100\% wygranych przy UCT(500) i UCT(1000),
+96--97\% przy UCT(5000)--UCT(50\,000), 95\% przy UCT(100\,000), a nawet przy
+najwyższych budżetach 90--91\% przy UCT(200\,000), UCT(300\,000) i UCT(500\,000).
 Pierwsza część hipotezy (przewaga heurystyki przy niskim budżecie) jest
 więc silnie potwierdzona dla całego praktycznego zakresu iteracji.
 
 Druga część hipotezy (cross-over przy wysokim budżecie) jest \emph{nieosiągnięta}
 w przeprowadzonych eksperymentach. Win-rate heurystyki maleje bardzo łagodnie
-(99\% $\to$ 94\% w zakresie UCT(500)--UCT(100\,000)), pozostając daleko od
-parytetu; teoretyczny punkt krzyżowania (50\% / 50\%) leży znacznie powyżej
+(100\% $\to$ 90\% w zakresie UCT(500)--UCT(500\,000)) i \emph{wypłaszcza się}
+na $\sim$90\%, pozostając daleko od parytetu. Przetestowaliśmy bezpośrednio
+budżet 5$\times$ większy niż 100\,000 --- i UCT nadal przegrywa 9 na 10 partii,
+więc teoretyczny punkt krzyżowania (50\% / 50\%) leży znacznie powyżej
 $10^6$ iteracji. Tak wysoki budżet przekracza praktyczne ramy zarówno czasowe
-(UCT(100\,000) zajmował już $\sim$1 s na ruch), jak i metodologiczne. Na planszy
+(UCT(500\,000) zajmuje już $\sim$4,5 s na ruch), jak i metodologiczne. Na planszy
 8$\times$8 przewaga heurystyki jest wyraźniejsza niż przy mniejszych wariantach,
 ponieważ losowe symulacje słabiej przybliżają wartość głębszych, taktycznych pozycji.
 
@@ -57,8 +60,8 @@ branching factor i wyraźnej strukturze taktycznej (jak Breakthrough),
 prosta funkcja ewaluacji łącznie z deterministycznym przeszukiwaniem
 alpha-beta może być \emph{tańsza obliczeniowo i istotnie skuteczniejsza}
 niż MCTS w całym praktycznym zakresie czasów decyzji. Czas wyboru ruchu
-przez heurystykę wynosił $\sim$30 ms, podczas gdy UCT(100\,000) ---
-$\sim$10 sekund.
+przez heurystykę wynosił $\sim$10 ms, podczas gdy UCT(100\,000) --- $\sim$1 s,
+a UCT(500\,000) --- $\sim$4,5 s.
 
 \paragraph{H4 (białe mają niewielką przewagę pierwszego gracza) ---
 \textsc{sfalsyfikowana}.}

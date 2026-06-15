@@ -157,7 +157,7 @@
     \midrule
     H1 & RAVE vs UCT & \{UCT, RAVE\} $\times$ \{5k--100k\} & 2800 \\
     H2 & Progressive Bias vs UCT & \{UCT, PB\} $\times$ \{5k--100k\} & 2800 \\
-    H3 & heurystyka vs UCT & heur.\ + UCT \{500--100k\} & 2100 \\
+    H3 & heurystyka vs UCT & heur.\ + UCT \{500--500k\} & 4500 \\
     H4 & przewaga pierwszego gracza & UCT(5k) vs UCT(5k) & 500 \\
     H5 & strojenie stałej $c$ & UCT(10k), $c\in\{0{,}5\text{--}3\}$ & 1000 \\
     H6 & czas decyzji & UCT \{5k, 10k, 50k\} & 300 \\
@@ -215,12 +215,13 @@
     \end{column}
     \begin{column}{0.38\textwidth}
         \small
-        Heurystyka: 99\% $\to$ 94\% przy UCT od 500 do 100k iteracji.
+        Heurystyka: 100\% $\to$ 90\% przy UCT od 500 do 500k iteracji.
         \vspace{1ex}
         \begin{itemize}\small
             \item Dominuje w całym praktycznym zakresie.
-            \item Nawet przy 100k iteracji UCT \textbf{nie dogania} heurystyki ---
-                  potrzebowałby wielokrotnie większego budżetu.
+            \item Nawet przy 500k iteracji (5$\times$ więcej) UCT wygrywa tylko
+                  $\sim$10\% --- krzywa wypłaszcza się na $\sim$90\%,
+                  \textbf{brak cross-over}.
         \end{itemize}
         \werdykt{\partc}
     \end{column}
@@ -272,7 +273,7 @@
         \centering
         \includegraphics[width=\linewidth,height=0.62\textheight,keepaspectratio]{cross_h3_time_asymmetry}
         \\ \footnotesize UCT myśli dłużej od heurystyki dopiero $>$50k iteracji
-        — a wciąż przegrywa 94\% partii.
+        — a wciąż przegrywa $\geq$90\% partii (nawet przy 500k).
     \end{column}
     \end{columns}
 \end{frame}

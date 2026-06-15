@@ -56,6 +56,30 @@
       "rave_k": 0.01,
       "bias_weight": 1.0,
       "depth": 5
+    },
+    {
+      "type": "uct",
+      "iterations": 200000,
+      "c": 1.4142135623730951,
+      "rave_k": 0.01,
+      "bias_weight": 1.0,
+      "depth": 5
+    },
+    {
+      "type": "uct",
+      "iterations": 300000,
+      "c": 1.4142135623730951,
+      "rave_k": 0.01,
+      "bias_weight": 1.0,
+      "depth": 5
+    },
+    {
+      "type": "uct",
+      "iterations": 500000,
+      "c": 1.4142135623730951,
+      "rave_k": 0.01,
+      "bias_weight": 1.0,
+      "depth": 5
     }
   ],
   "n_games_per_pair": 100,

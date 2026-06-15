@@ -4,7 +4,7 @@ from breakthrough.experiments.harness import Experiment, AgentConfig, run_experi
 
 if __name__ == "__main__":
     agents = [AgentConfig(type="heuristic", depth=5)]
-    for iters in [500, 1000, 5000, 10000, 50000, 100000, 200000, 300000]:
+    for iters in [500, 1000, 5000, 10000, 50000, 100000, 200000, 300000, 500000]:
         agents.append(AgentConfig(type="uct", iterations=iters))
 
     exp = Experiment(
