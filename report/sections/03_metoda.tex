@@ -214,7 +214,7 @@ breakthrough-mcts/
   python/breakthrough/
     reference_game.py               # Walidacja krzyżowa
     gui.py                          # Pygame GUI
-    experiments/                    # Run_h{1,2,3,4}.py
+    experiments/                    # run_h{1..6}.py
   tests/test_rust_vs_python.py      # Walidacja silnika
   notebooks/                        # Skrypty analityczne
   report/                           # Niniejszy dokument
@@ -231,3 +231,45 @@ batchowania eksperymentów (\texttt{ProcessPoolExecutor}). Decyzja motywowana
 czystością metodologiczną porównań --- porównujemy algorytmy, nie zrównoleglenie.
 Tree parallelization (virtual loss) ani root parallelization \emph{nie} są
 zaimplementowane.
+
+\subsection{Interfejs graficzny (człowiek vs AI)}
+\label{sec:gui}
+
+Do jakościowej oceny agentów i zbierania partii z ludźmi zaimplementowaliśmy
+graficzny interfejs w bibliotece Pygame (\texttt{python -m breakthrough.gui}).
+
+Ekran startowy (rys.~\ref{fig:gui_setup}) pozwala wybrać algorytm przeciwnika
+(UCT, RAVE, Progressive Bias, heurystyka, gracz losowy), kolor gracza (białe,
+czarne lub losowo) oraz parametry agenta: budżet iteracji z presetów
+(10k--1M), stałą eksploracji $c$, a dla poszczególnych wariantów dodatkowo
+$b^2$, wagę biasu lub głębokość przeszukiwania.
+
+Podczas rozgrywki (rys.~\ref{fig:gui_play}) plansza 8$\times$8 jest renderowana
+z perspektywy gracza; kliknięcie pionka podświetla jego legalne ruchy (kropka ---
+ruch, pierścień --- bicie), a ostatni ruch jest zaznaczony. Panel boczny
+prezentuje konfigurację przeciwnika oraz statystyki partii na żywo: numer ruchu,
+czas gry i łączny czas namysłu obu stron. Ruch AI liczony jest w osobnym procesie
+(\texttt{ProcessPoolExecutor}), dzięki czemu interfejs pozostaje responsywny
+nawet przy dużych budżetach iteracji.
+
+Po zakończonej partii gracz wystawia ocenę trudności (skala 1--10), a całość ---
+log ruchów z czasami namysłu oraz wiersz podsumowania (przeciwnik, wynik, kolor,
+ocena trudności) --- zapisywana jest do \texttt{results/human\_games/}. Analiza
+zebranych partii znajduje się w sekcji~\ref{sec:wyniki-human}.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.68\textwidth]{figures/gui_1}
+    \caption{Ekran konfiguracji partii: wybór algorytmu przeciwnika, koloru
+    gracza i parametrów (na zrzucie: UCT, gra białymi, 10\,000 iteracji,
+    $c = \sqrt{2}$).}
+    \label{fig:gui_setup}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/gui_2}
+    \caption{Widok rozgrywki: plansza 8$\times$8 (z perspektywy gracza białego)
+    oraz panel boczny z konfiguracją przeciwnika i statystykami partii na żywo.}
+    \label{fig:gui_play}
+\end{figure}

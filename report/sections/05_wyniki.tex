@@ -14,9 +14,9 @@ przedziałami ufności wyliczanymi metodą Wilsona \cite{wilson1927probable}.
     \includegraphics[width=0.85\textwidth]{figures/h1_rave_vs_uct}
     \caption{Skalowanie odsetków wygranych RAVE i UCT z budżetem iteracji
     (8$\times$8, turniej round-robin). Punkty pokazują ogólny win-rate każdego
-    agenta we wszystkich rozegranych przez niego partiach, słupki błędów to
-    95\% CI Wilsona. Linia 50\% oznacza neutralność. Obie metody zyskują z budżetem;
-    RAVE nie wyprzedza UCT przy żadnym budżecie.}
+    agenta we wszystkich rozegranych przez niego partiach. Linia 50\% oznacza
+    neutralność. Obie metody zyskują z budżetem; RAVE nie wyprzedza UCT przy
+    żadnym budżecie.}
     \label{fig:h1}
 \end{figure}
 
@@ -148,10 +148,10 @@ istotnie silniej grające.
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.5\textwidth]{figures/h4_first_player_advantage}
-    \caption{Odsetek wygranych białych (pierwszego gracza) w symetrycznym
-    turnieju UCT(5000) vs UCT(5000) na planszy 8$\times$8. Linia 50\% oznacza
-    brak przewagi; 95\% CI Wilsona zawiera 50\%.}
+    \includegraphics[width=0.85\textwidth]{figures/h4_first_player_advantage}
+    \caption{Udział zwycięstw białych (pierwszego gracza) i czarnych
+    w symetrycznym turnieju UCT(5000) vs UCT(5000) na planszy 8$\times$8 (n=500).
+    Przerywana linia 50\% oznacza brak przewagi.}
     \label{fig:h4}
 \end{figure}
 
@@ -183,10 +183,11 @@ Interpretacja:
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.7\textwidth]{figures/h5_c_heatmap}
-    \caption{Macierz win-rate białych dla turnieju round-robin pięciu wartości
-    stałej eksploracji $c$ (UCT 10\,000 iteracji, 8$\times$8). Wiersz --- $c$ gracza
-    białego, kolumna --- $c$ przeciwnika. Im niższe $c$ wiersza, tym wyraźniej
-    zielony (więcej wygranych): $c = 0{,}5$ dominuje całą tabelę.}
+    \caption{Macierz win-rate dla turnieju round-robin pięciu wartości
+    stałej eksploracji $c$ (UCT 10\,000 iteracji, 8$\times$8). Wiersz --- $c$ gracza,
+    kolumna --- $c$ przeciwnika. Skala dwubiegunowa wycentrowana na 50\%: czerwień
+    oznacza przewagę gracza z wiersza, błękit --- przeciwnika z kolumny. Wiersz
+    $c = 0{,}5$ jest wyraźnie czerwony i dominuje całą tabelę.}
     \label{fig:h5_heatmap}
 \end{figure}
 
@@ -234,36 +235,146 @@ do strojenia UCT w tej grze i sugeruje rozszerzenie eksperymentu o $c \in \{0{,}
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.95\textwidth]{figures/h6_decision_time}
-    \caption{Średni czas decyzji UCT w funkcji numeru ruchu, w rozbiciu na budżet
-    iteracji (8$\times$8). Czas jest najwyższy w otwarciu i maleje monotonicznie
-    w trakcie partii. Charakterystyczny ząbkowany kształt wynika z naprzemiennej
-    gry agentów o różnych budżetach (kolejne ruchy wykonują różni gracze).}
+    \caption{Czas decyzji UCT w funkcji numeru półruchu (8$\times$8), w rozbiciu
+    na budżet iteracji. Każdy półruch przypisano do budżetu agenta, który go
+    wykonał. Lewy panel: mediana czasu wraz z pasmem międzykwartylowym
+    w trakcie partii --- czas jest najwyższy w otwarciu i maleje monotonicznie.
+    Prawy panel: skalowanie mediany czasu na ruch z budżetem iteracji.}
     \label{fig:h6}
 \end{figure}
 
-\paragraph{Średni czas decyzji wg budżetu iteracji:}
+\paragraph{Mediana czasu na ruch wg budżetu iteracji:}
 \begin{center}
-\begin{tabular}{rcc}
+\begin{tabular}{rc}
 \toprule
-\textbf{Budżet UCT} & \textbf{Średni czas/ruch} & \textbf{Odch.\ std.} \\
+\textbf{Budżet UCT} & \textbf{Mediana czasu/ruch} \\
 \midrule
-5\,000   & 0,298 s & 0,364 s \\
-10\,000  & 0,354 s & 0,389 s \\
-50\,000  & 0,517 s & 0,453 s \\
+5\,000   & 0,09 s \\
+10\,000  & 0,18 s \\
+50\,000  & 0,93 s \\
 \bottomrule
 \end{tabular}
 \end{center}
 
 Hipoteza H6 (czas decyzji rośnie w środkowej fazie gry) jest \emph{sfalsyfikowana}.
-Wbrew oczekiwaniom, średni czas na ruch jest \emph{najwyższy w otwarciu}
+Wbrew oczekiwaniom, czas na ruch jest \emph{najwyższy w otwarciu}
 i maleje monotonicznie w miarę postępu partii --- nie obserwujemy maksimum
 w ruchach 15--40. Wyjaśnienie tkwi w naturze kosztu pojedynczej iteracji MCTS:
 przy stałym budżecie iteracji dominującym kosztem jest długość losowej symulacji
 (rolloutu do stanu terminalnego), a ta jest najdłuższa na początku gry i kurczy
 się wraz ze zbliżaniem do końcówki. Większy branching factor w środkowej fazie
 \emph{nie} podnosi kosztu ruchu, ponieważ liczba iteracji jest ustalona.
-Zgodnie z oczekiwaniem skaluje się natomiast czas z budżetem (0,30 s $\to$
-0,52 s dla 5k $\to$ 50k iteracji).
+Zgodnie z oczekiwaniem skaluje się natomiast czas z budżetem (mediana 0,09 s
+$\to$ 0,93 s dla 5k $\to$ 50k iteracji).
+
+\paragraph{Uwaga metodologiczna.}
+Ponieważ w tym eksperymencie kojarzymy agentów o różnych budżetach, każdy
+półruch przypisujemy do budżetu agenta, który go faktycznie wykonał (ruchy
+parzyste --- biały, nieparzyste --- czarny). Dzięki temu krzywe odzwierciedlają
+rzeczywisty koszt decyzji danego budżetu, a nie artefakt naprzemiennej gry
+graczy o różnej sile.
+
+\subsection{Analizy przekrojowe}
+\label{sec:wyniki-cross}
+
+Poza testami pojedynczych hipotez zebraliśmy kilka obserwacji przekrojowych
+po wszystkich sześciu zbiorach danych (H1--H6).
+
+\paragraph{Długość partii.}
+Rozkłady długości partii są zbliżone we wszystkich eksperymentach
+(rys.~\ref{fig:cross_len}): mediana 55--60 półruchów. Partie na planszy
+8$\times$8 rzadko kończą się przed 40.\ półruchem i niemal nigdy nie przekraczają
+75 --- przewaga taktyczna jest realizowana stopniowo przez marsz pionków.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/cross_game_length_distributions}
+    \caption{Rozkłady długości partii (skrzypce) w sześciu eksperymentach.}
+    \label{fig:cross_len}
+\end{figure}
+
+\paragraph{Przewaga pierwszego gracza --- ujęcie zbiorcze.}
+Odsetek wygranych białych mieści się w wąskim paśmie 48--52\% we wszystkich
+sześciu eksperymentach, a każdy 95\% CI Wilsona obejmuje 50\%
+(rys.~\ref{fig:cross_fp}). Potwierdza to wniosek z H4 w szerszym kontekście
+(różne algorytmy, budżety i stałe $c$): przy MCTS o zbliżonej sile przewaga
+pierwszego ruchu jest pomijalna.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/cross_first_player_advantage}
+    \caption{Odsetek wygranych białych w każdym z eksperymentów (95\% CI Wilsona).
+    Wszystkie przedziały obejmują 50\%.}
+    \label{fig:cross_fp}
+\end{figure}
+
+\paragraph{Asymetria czasu namysłu w H3.}
+Rys.~\ref{fig:cross_time} zestawia czas na ruch heurystyki (alpha-beta $d=5$,
+niemal stały, $\sim$0,25--0,37 s) z czasem UCT, który skaluje się od $\sim$7 ms
+(500 iter.) do $\sim$1,1 s (100k iter.). Krzywe przecinają się dopiero ok.
+50\,000 iteracji --- powyżej tego budżetu UCT myśli dłużej niż heurystyka, mimo że
+nadal przegrywa 94\% partii. Ilustruje to praktyczną przewagę heurystyki: jest
+jednocześnie silniejsza i tańsza w niemal całym zakresie.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/cross_h3_time_asymmetry}
+    \caption{Średni czas na ruch: heurystyka o stałej głębokości vs skalujący się
+    UCT (osie logarytmiczne).}
+    \label{fig:cross_time}
+\end{figure}
+
+\subsection{Partie człowiek vs AI}
+\label{sec:wyniki-human}
+
+Dla jakościowego zilustrowania siły agentów udostępniliśmy grę przez interfejs
+graficzny (sekcja~\ref{sec:gui}) i zebraliśmy 12 partii człowiek--AI. Jest to
+demonstracja narzędzia, a nie rygorystyczny eksperyment: próba jest mała, a poziom
+ludzkiego gracza niejednorodny, więc wyników nie należy traktować jako pomiaru
+siły w sensie statystycznym.
+
+Człowiek wygrał 11 z 12 partii przeciwko agentom MCTS o budżetach od 10\,000
+do 1\,000\,000 iteracji (rys.~\ref{fig:human_outcome}). Wynik jest spójny z H3:
+czysty UCT, pozbawiony wiedzy domenowej, gra Breakthrough taktycznie słabo nawet
+przy bardzo dużych budżetach. Postrzegana trudność (ocena 1--10 wystawiana po
+partii) miała medianę 4,5 i nie rosła wyraźnie z budżetem iteracji
+(rys.~\ref{fig:human_diff}).
+
+Czas namysłu AI skaluje się z budżetem --- od ułamków sekundy przy 10k iteracji
+do kilkudziesięciu sekund na ruch przy 1M (rys.~\ref{fig:human_aitime}).
+Człowiek namyślał się medianowo $\sim$5,2 s na ruch (AI $\sim$4,2 s), przy czym
+ludzki czas jest największy w fazie środkowej, gdy pozycja jest najbardziej
+taktyczna (rys.~\ref{fig:human_overgame}).
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/human_outcome_per_game}
+    \caption{Przegląd 12 partii człowiek--AI (zielony --- człowiek wygrał,
+    czerwony --- przegrał); oś pozioma to długość partii.}
+    \label{fig:human_outcome}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/human_difficulty_vs_strength}
+    \caption{Postrzegana trudność (1--10) względem budżetu iteracji AI.}
+    \label{fig:human_diff}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/human_ai_thinktime_scaling}
+    \caption{Średni czas AI na ruch względem budżetu iteracji (osie logarytmiczne).}
+    \label{fig:human_aitime}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/human_thinktime_over_game}
+    \caption{Czas namysłu na ruch w trakcie partii: człowiek vs AI
+    (średnia $\pm$ 95\% CI po wszystkich partiach).}
+    \label{fig:human_overgame}
+\end{figure}
 
 \subsection{Synteza ilościowa}
 
