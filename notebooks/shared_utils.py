@@ -27,7 +27,6 @@ PALETTE = {
 
 
 def setup_style():
-    """Globalny, spójny motyw dla wszystkich wykresów (wektorowy PDF)."""
     sns.set_theme(style="whitegrid", context="notebook",
                   palette="colorblind", font="DejaVu Sans")
     plt.rcParams.update({
@@ -54,11 +53,8 @@ def setup_style():
 
 setup_style()
 
-
-def style_winrate_axis(ax, ylabel="Odsetek wygranych (95% CI Wilsona)",
+def style_winrate_axis(ax, ylabel="Odsetek wygranych",
                        shade=True):
-    """Wspólny wygląd osi dla wykresów odsetka wygranych: linia 50%,
-    delikatne tło regionów przewagi/słabości, ograniczenie [0, 1]."""
     if shade:
         ax.axhspan(0.5, 1.0, color=PALETTE["win"], alpha=0.06, zorder=0)
         ax.axhspan(0.0, 0.5, color=PALETTE["loss"], alpha=0.06, zorder=0)
@@ -71,27 +67,26 @@ def style_winrate_axis(ax, ylabel="Odsetek wygranych (95% CI Wilsona)",
 
 
 def winrate_series(ax, x, rate, lo, hi, label, color, marker="o",
-                   pvals=None, annotate_last=True):
-    """Rysuje serię odsetka wygranych jako wstęgę CI + linię z markerami.
-    Punkty istotne (p<0.05) są wypełnione, nieistotne — puste w środku."""
+                   pvals=None, annotate_last=True, ci=True, significance=True):
     x = np.asarray(x, dtype=float)
     rate = np.asarray(rate, dtype=float)
-    lo = np.asarray(lo, dtype=float)
-    hi = np.asarray(hi, dtype=float)
 
-    ax.fill_between(x, lo, hi, color=color, alpha=0.16, lw=0, zorder=2)
+    if ci:
+        lo = np.asarray(lo, dtype=float)
+        hi = np.asarray(hi, dtype=float)
+        ax.fill_between(x, lo, hi, color=color, alpha=0.16, lw=0, zorder=2)
     ax.plot(x, rate, color=color, lw=2.4, zorder=4,
             solid_capstyle="round", label=label)
 
-    if pvals is not None:
-        pvals = np.asarray(pvals, dtype=float)
-        sig = pvals < 0.05
+    if significance and pvals is not None:
+        sig = np.asarray(pvals, dtype=float) < 0.05
+        ax.scatter(x[sig], rate[sig], s=70, color=color, zorder=6,
+                   edgecolor="white", linewidth=1.4, marker=marker)
+        ax.scatter(x[~sig], rate[~sig], s=70, facecolor="white", zorder=6,
+                   edgecolor=color, linewidth=1.8, marker=marker)
     else:
-        sig = np.ones_like(rate, dtype=bool)
-    ax.scatter(x[sig], rate[sig], s=70, color=color, zorder=6,
-               edgecolor="white", linewidth=1.4, marker=marker)
-    ax.scatter(x[~sig], rate[~sig], s=70, facecolor="white", zorder=6,
-               edgecolor=color, linewidth=1.8, marker=marker)
+        ax.scatter(x, rate, s=70, color=color, zorder=6,
+                   edgecolor="white", linewidth=1.4, marker=marker)
 
     if annotate_last and len(rate):
         ax.annotate(f"{rate[-1]*100:.0f}%",
@@ -102,7 +97,6 @@ def winrate_series(ax, x, rate, lo, hi, label, color, marker="o",
 
 
 def plot_game_length(df, name, title, color):
-    """Ładny rozkład długości partii: histogram + KDE + mediana/średnia."""
     lengths = df["n_moves"].dropna()
     fig, ax = plt.subplots(figsize=(8, 4.5))
     sns.histplot(lengths, kde=True, color=color, edgecolor="white",
@@ -132,7 +126,6 @@ def load_games(path: str | Path) -> pd.DataFrame:
 
 
 def wilson_ci(wins: int, n: int, alpha: float = 0.05) -> tuple[float, float, float]:
-    """Wilson score interval. Returns (rate, low, high)."""
     from scipy.stats import norm
     if n == 0:
         return 0.5, 0.0, 1.0
@@ -147,18 +140,15 @@ def wilson_ci(wins: int, n: int, alpha: float = 0.05) -> tuple[float, float, flo
 
 
 def significance_test(wins: int, n: int) -> float:
-    """Two-sided binomial test, H0: p = 0.5. Returns p-value."""
     from scipy.stats import binomtest
     return binomtest(wins, n, 0.5, alternative="two-sided").pvalue
 
 
 def cohens_h(p1: float, p2: float = 0.5) -> float:
-    """Cohen's h effect size for two proportions."""
     return 2 * (math.asin(math.sqrt(p1)) - math.asin(math.sqrt(p2)))
 
 
 def game_length_stats(df: pd.DataFrame) -> dict:
-    """Compute median, IQR, mean of n_moves."""
     lengths = df["n_moves"]
     return {
         "median": lengths.median(),
@@ -170,7 +160,6 @@ def game_length_stats(df: pd.DataFrame) -> dict:
 
 
 def extract_move_times(df: pd.DataFrame) -> pd.DataFrame:
-    """Explode move_times into long-form: one row per (game, move_number, time)."""
     rows = []
     for _, game in df.iterrows():
         for i, t in enumerate(game.get("move_times", []) or []):
@@ -190,7 +179,6 @@ def save_fig(name: str):
 
 
 def aggregate_winrate_by_iters(df: pd.DataFrame, agent_type: str) -> pd.DataFrame:
-    """For each iteration budget, compute win rate of `agent_type` (across both colors)."""
     rows = []
     iters_set = set()
     for _, row in df.iterrows():

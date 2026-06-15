@@ -35,13 +35,13 @@ for label, summary, color, marker in [
     winrate_series(ax, summary["iterations"], summary["rate"],
                    summary["ci_low"], summary["ci_high"],
                    label=label, color=color, marker=marker,
-                   pvals=summary["p_value"], annotate_last=True)
+                   annotate_last=True, significance=False, ci=False)
 
-style_winrate_axis(ax)
+style_winrate_axis(ax, ylabel="Odsetek wygranych")
 ax.set_xscale("log")
 ax.set_xlabel("Liczba iteracji MCTS (skala log)")
 ax.set_title("H2: Progressive Bias vs UCT — skalowanie z budżetem iteracji")
-ax.legend(title="Algorytm (pełny marker = p<0.05)", loc="upper left")
+ax.legend(title="Algorytm", loc="upper left")
 save_fig("h2_pb_vs_uct")
 
 stats = game_length_stats(df)
