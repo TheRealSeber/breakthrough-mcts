@@ -8,11 +8,116 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 import seaborn as sns
 
-sns.set_theme(style="whitegrid", palette="colorblind")
 FIGURES_DIR = Path("report/figures")
 FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+
+PALETTE = {
+    "uct": "#4C72B0",
+    "rave": "#DD8452",
+    "pb": "#55A868",
+    "heuristic": "#C44E52",
+    "accent": "#8172B3",
+    "neutral": "#7F7F7F",
+    "win": "#2A9D8F",
+    "loss": "#E76F51",
+}
+
+
+def setup_style():
+    """Globalny, spójny motyw dla wszystkich wykresów (wektorowy PDF)."""
+    sns.set_theme(style="whitegrid", context="notebook",
+                  palette="colorblind", font="DejaVu Sans")
+    plt.rcParams.update({
+        "figure.dpi": 120,
+        "figure.facecolor": "white",
+        "axes.titleweight": "bold",
+        "axes.titlesize": 14,
+        "axes.titlepad": 12,
+        "axes.labelsize": 12,
+        "axes.labelweight": "medium",
+        "axes.edgecolor": "#444444",
+        "axes.linewidth": 1.0,
+        "axes.grid.axis": "both",
+        "grid.alpha": 0.30,
+        "grid.linewidth": 0.7,
+        "legend.frameon": True,
+        "legend.framealpha": 0.92,
+        "legend.edgecolor": "#dddddd",
+        "legend.fancybox": True,
+        "savefig.bbox": "tight",
+        "pdf.fonttype": 42,
+    })
+
+
+setup_style()
+
+
+def style_winrate_axis(ax, ylabel="Odsetek wygranych (95% CI Wilsona)",
+                       shade=True):
+    """Wspólny wygląd osi dla wykresów odsetka wygranych: linia 50%,
+    delikatne tło regionów przewagi/słabości, ograniczenie [0, 1]."""
+    if shade:
+        ax.axhspan(0.5, 1.0, color=PALETTE["win"], alpha=0.06, zorder=0)
+        ax.axhspan(0.0, 0.5, color=PALETTE["loss"], alpha=0.06, zorder=0)
+    ax.axhline(0.5, color=PALETTE["neutral"], linestyle=(0, (5, 4)),
+               lw=1.3, zorder=1)
+    ax.set_ylim(0, 1)
+    ax.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1.0, decimals=0))
+    ax.set_ylabel(ylabel)
+    ax.spines[["top", "right"]].set_visible(False)
+
+
+def winrate_series(ax, x, rate, lo, hi, label, color, marker="o",
+                   pvals=None, annotate_last=True):
+    """Rysuje serię odsetka wygranych jako wstęgę CI + linię z markerami.
+    Punkty istotne (p<0.05) są wypełnione, nieistotne — puste w środku."""
+    x = np.asarray(x, dtype=float)
+    rate = np.asarray(rate, dtype=float)
+    lo = np.asarray(lo, dtype=float)
+    hi = np.asarray(hi, dtype=float)
+
+    ax.fill_between(x, lo, hi, color=color, alpha=0.16, lw=0, zorder=2)
+    ax.plot(x, rate, color=color, lw=2.4, zorder=4,
+            solid_capstyle="round", label=label)
+
+    if pvals is not None:
+        pvals = np.asarray(pvals, dtype=float)
+        sig = pvals < 0.05
+    else:
+        sig = np.ones_like(rate, dtype=bool)
+    ax.scatter(x[sig], rate[sig], s=70, color=color, zorder=6,
+               edgecolor="white", linewidth=1.4, marker=marker)
+    ax.scatter(x[~sig], rate[~sig], s=70, facecolor="white", zorder=6,
+               edgecolor=color, linewidth=1.8, marker=marker)
+
+    if annotate_last and len(rate):
+        ax.annotate(f"{rate[-1]*100:.0f}%",
+                    xy=(x[-1], rate[-1]),
+                    xytext=(8, 0), textcoords="offset points",
+                    va="center", ha="left", fontsize=10,
+                    fontweight="bold", color=color)
+
+
+def plot_game_length(df, name, title, color):
+    """Ładny rozkład długości partii: histogram + KDE + mediana/średnia."""
+    lengths = df["n_moves"].dropna()
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    sns.histplot(lengths, kde=True, color=color, edgecolor="white",
+                 alpha=0.55, ax=ax, line_kws={"lw": 2.2})
+    med, mean = lengths.median(), lengths.mean()
+    ax.axvline(med, color=PALETTE["neutral"], ls="--", lw=1.6,
+               label=f"mediana = {med:.0f}")
+    ax.axvline(mean, color=PALETTE["heuristic"], ls=":", lw=1.8,
+               label=f"średnia = {mean:.1f}")
+    ax.set_xlabel("Długość partii (półruchy)")
+    ax.set_ylabel("Liczba partii")
+    ax.set_title(title)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.legend()
+    save_fig(name)
 
 
 def load_games(path: str | Path) -> pd.DataFrame:

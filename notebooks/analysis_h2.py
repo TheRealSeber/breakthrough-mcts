@@ -5,6 +5,7 @@ from pathlib import Path
 sys.path.insert(0, "notebooks")
 from shared_utils import (
     load_games, aggregate_winrate_by_iters, game_length_stats, save_fig,
+    style_winrate_axis, winrate_series, plot_game_length, PALETTE,
 )
 import matplotlib.pyplot as plt
 
@@ -26,29 +27,25 @@ for label, summary in [("UCT", uct_summary), ("PB", pb_summary)]:
               f"CI=[{row['ci_low']:.3f}, {row['ci_high']:.3f}] "
               f"p={row['p_value']:.4f} h={row['cohens_h']:.3f}")
 
-fig, ax = plt.subplots(figsize=(8, 5))
-for label, summary, color in [("UCT", uct_summary, "tab:blue"), ("Progressive Bias", pb_summary, "tab:green")]:
-    err_lo = summary["rate"] - summary["ci_low"]
-    err_hi = summary["ci_high"] - summary["rate"]
-    ax.errorbar(
-        summary["iterations"], summary["rate"],
-        yerr=[err_lo, err_hi],
-        label=label, color=color, marker="o", capsize=5,
-    )
+fig, ax = plt.subplots(figsize=(8.5, 5.2))
+for label, summary, color, marker in [
+    ("UCT", uct_summary, PALETTE["uct"], "o"),
+    ("Progressive Bias", pb_summary, PALETTE["pb"], "D"),
+]:
+    winrate_series(ax, summary["iterations"], summary["rate"],
+                   summary["ci_low"], summary["ci_high"],
+                   label=label, color=color, marker=marker,
+                   pvals=summary["p_value"], annotate_last=True)
 
-ax.axhline(0.5, color="gray", linestyle="--", alpha=0.5, label="50%")
+style_winrate_axis(ax)
 ax.set_xscale("log")
-ax.set_xlabel("Liczba iteracji MCTS")
-ax.set_ylabel("Odsetek wygranych (95% CI Wilsona)")
+ax.set_xlabel("Liczba iteracji MCTS (skala log)")
 ax.set_title("H2: Progressive Bias vs UCT — skalowanie z budżetem iteracji")
-ax.legend()
+ax.legend(title="Algorytm (pełny marker = p<0.05)", loc="upper left")
 save_fig("h2_pb_vs_uct")
 
 stats = game_length_stats(df)
 print(f"\nGame length: median={stats['median']}, IQR={stats['iqr']:.1f}, mean={stats['mean']:.1f}")
 
-fig, ax = plt.subplots(figsize=(6, 4))
-df.boxplot(column="n_moves", ax=ax)
-ax.set_ylabel("Liczba ruchów")
-ax.set_title("H2: Rozkład długości partii")
-save_fig("h2_game_length")
+plot_game_length(df, "h2_game_length", "H2: Rozkład długości partii",
+                 PALETTE["pb"])

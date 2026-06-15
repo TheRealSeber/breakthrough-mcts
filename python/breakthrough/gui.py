@@ -81,7 +81,12 @@ def fmt_think(sec):
 
 
 def _fmt_count(v):
-    return f"{v // 1000}k" if v >= 1000 and v % 1000 == 0 else str(int(v))
+    v = int(v)
+    if v >= 1_000_000 and v % 1_000_000 == 0:
+        return f"{v // 1_000_000}M"
+    if v >= 1000 and v % 1000 == 0:
+        return f"{v // 1000}k"
+    return str(v)
 
 ALGOS = [
     ("uct", "UCT"),
@@ -91,7 +96,7 @@ ALGOS = [
     ("random", "Random"),
 ]
 PARAM_SPECS = {
-    "iterations":  dict(label="Iterations",     default=10000, presets=[10000, 50000, 100000, 200000, 500000], fmt=lambda v: str(int(round(v)))),
+    "iterations":  dict(label="Iterations",     default=10000, presets=[10000, 50000, 100000, 200000, 500000, 800000, 1000000], fmt=lambda v: str(int(round(v)))),
     "c":           dict(label="Exploration c",  default=1.4142135623730951,  min=0.0, max=3.0,   step=0.1,  fmt=lambda v: f"{v:.2f}"),
     "rave_k":      dict(label="RAVE b²",    default=0.01,                min=0.0, max=1.0,   step=0.01, fmt=lambda v: f"{v:.2f}"),
     "bias_weight": dict(label="Bias weight",    default=1.0,                 min=0.0, max=5.0,   step=0.25, fmt=lambda v: f"{v:.2f}"),
@@ -643,7 +648,6 @@ def run_gui():
         won = state.winner() == HUMAN_PLAYS
         cx = ov_x + ov_w // 2
         text(f_win, "You win!" if won else "You lose", (40, 40, 40), cx, ov_y + int(ov_h * 0.11), center=True)
-        # stats row
         stats = [("Time", fmt_duration(elapsed)),
                  ("Moves", str(len(game_log))),
                  ("Winner", (state.winner() or "-").capitalize())]
