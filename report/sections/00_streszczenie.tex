@@ -1,38 +1,17 @@
 \begin{abstract}
 \noindent
-Niniejszy projekt bada empirycznie skuteczność algorytmu Monte Carlo Tree Search
-z regułą UCT oraz wybranych jego rozszerzeń w klasycznej grze Breakthrough na
-planszy 8$\times$8. Implementację wykonano w Ruście (silnik gry, agenci MCTS)
-z interfejsem do Pythona poprzez PyO3, co pozwoliło na efektywne uruchomienie
-ponad 10\,000 partii. Rdzeń obliczeniowy korzysta z reprezentacji bitboardowej
-(dwa $u_{64}$), generatora ruchów na operacjach bitowych z maskowaniem krawędzi
-oraz Zobrist hashing.
+Projekt bada skuteczność algorytmu Monte Carlo Tree Search (UCT) oraz jego
+rozszerzeń (RAVE, Progressive Bias) w grze Breakthrough na planszy 8$\times$8,
+zestawiając je dodatkowo z deterministyczną heurystyką alpha-beta. Silnik gry
+i agentów zaimplementowano w Rust z interfejsem do Pythona, co pozwoliło
+rozegrać ponad 10\,000 partii w serii turniejów.
 
-Zweryfikowano sześć hipotez badawczych. \textbf{H1} (RAVE wygrywa z vanilla UCT,
-motywowana literaturą Go) została \emph{sfalsyfikowana}: RAVE jest na parytecie
-z UCT przy 5000--50\,000 iteracji (49--54\%) i \emph{przegrywa} istotnie przy
-100\,000 iteracji (39,0\%, $p=0{,}035$). Niezależnie potwierdziliśmy poprawność
-implementacji (przy $\beta \to 0$ RAVE odtwarza UCT), więc spadek pochodzi
-z heurystyki AMAF: w Breakthrough wartość ruchu silnie zależy od pozycji (brak
-translation invariance jak w Go). \textbf{H2} (Progressive Bias $>$ UCT) ma wynik
-\emph{niejednoznaczny}: 43--55\% wygranych, wszystkie CI przecinają 50\%.
-\textbf{H3} (heurystyka alpha-beta wygrywa przy niskich budżetach, przegrywa przy
-wysokich) jest \emph{częściowo potwierdzona}: heurystyka osiąga 96--100\% wygranych
-do 100\,000 iteracji i wciąż $\sim$90\% przy 500\,000 --- punkt krzyżowania nie
-zostaje osiągnięty nawet przy 5$\times$ większym budżecie. \textbf{H4} (białe mają przewagę pierwszego gracza) jest
-\emph{sfalsyfikowana}: białe wygrywają 49,4\% partii (n=500, CI obejmuje 50\%).
-\textbf{H5} (stała $c$ ma optimum o kształcie odwróconego U) jest
-\emph{sfalsyfikowana}: najsilniejsze jest najniższe $c=0{,}5$ (75,7\%), a win-rate
-maleje monotonicznie do $c=3{,}0$ (37,8\%) --- gra premiuje eksploatację.
-\textbf{H6} (czas decyzji rośnie w środkowej fazie gry) jest \emph{sfalsyfikowana}:
-czas maleje monotonicznie od otwarcia, gdyż przy stałym budżecie iteracji dominuje
-długość rolloutu, a nie branching factor.
+W sześciu eksperymentach sprawdziliśmy m.in.\ czy rozszerzenia UCT poprawiają siłę
+gry, jak heurystyka wypada względem MCTS przy różnych budżetach iteracji, czy
+pierwszy gracz ma przewagę oraz jak na wynik wpływa stała eksploracji $c$.
 
-Najważniejsze odkrycie: techniki rozwoju MCTS opracowane dla Go nie przenoszą się
-automatycznie na Breakthrough, a deterministyczna heurystyka alpha-beta z bogatą
-funkcją ewaluacji jest zarówno tańsza obliczeniowo ($\sim$10\,ms na ruch vs
-$\sim$1\,s przy UCT(100\,000)), jak i znacząco silniejsza w całym praktycznym
-zakresie iteracji. Wszystkie eksperymenty są w pełni reprodukowalne
-(master seed $\to$ SHA-256 $\to$ seedy partii); 95\% przedziały ufności
-obliczane metodą Wilsona.
+Najważniejsze obserwacje: rozszerzenia opracowane dla gry Go nie przenoszą się
+wprost na Breakthrough -- RAVE nie poprawia gry, a Progressive Bias nie daje
+istotnej różnicy. Najsilniejsza okazała się prosta heurystyka alpha-beta, która
+jest zarazem szybsza i skuteczniejsza od UCT w całym praktycznym zakresie.
 \end{abstract}

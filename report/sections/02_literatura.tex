@@ -1,112 +1,111 @@
 \section{Przegląd literatury}
 \label{sec:literatura}
 
-W niniejszej sekcji przedstawiamy genezę algorytmu Monte Carlo Tree Search,
-najważniejsze rozszerzenia istotne dla tego projektu oraz literaturę
-dotyczącą gry Breakthrough w kontekście MCTS.
+\subsection{Monte Carlo Tree Search i algorytm UCT}
 
-\subsection{Geneza MCTS i UCT}
+Algorytm Monte Carlo Tree Search (MCTS), spopularyzowany przez Coulom\,a
+\cite{coulom2006efficient} w kontekście gry Go, to asymetryczna metoda
+przeszukiwania drzewa decyzyjnego, która w wariancie podstawowym nie wymaga
+wbudowanej, eksperckiej funkcji oceny heurystycznej. Działanie algorytmu opiera
+się na iteracyjnym powtarzaniu czterech faz:
+\begin{enumerate}[nosep]
+    \item \textbf{Selekcja.} Algorytm przechodzi od korzenia w dół drzewa,
+          wybierając węzły na podstawie tzw.\ polityki drzewa (tree policy),
+          aż do osiągnięcia liścia lub węzła, który nie został w pełni rozwinięty.
+    \item \textbf{Ekspansja.} Do drzewa dodawany jest nowy węzeł potomny,
+          odpowiadający jednemu z możliwych ruchów z wybranego stanu.
+    \item \textbf{Symulacja.} Z nowo dodanego węzła rozgrywana jest losowa partia
+          (z użyciem tzw.\ default policy) aż do osiągnięcia stanu terminalnego.
+    \item \textbf{Propagacja wsteczna.} Wynik symulacji (np.\ wygrana, przegrana)
+          jest propagowany w górę drzewa, aktualizując statystyki odwiedzin
+          i zwycięstw każdego węzła na ścieżce.
+\end{enumerate}
 
-Metoda Monte Carlo Tree Search została zaproponowana przez Coulom\,a
-\cite{coulom2006efficient} jako algorytm przeszukiwania dla gry Go,
-gdzie wcześniejsze podejścia oparte na alpha-beta nie potrafiły poradzić
-sobie z dużym branching factor (typowo 200--400 ruchów w pozycji).
-Kluczowa innowacja Coulom\,a: zamiast przeszukiwać drzewo gry do pełnej
-głębokości i ewaluować liście funkcją heurystyczną, rozwijano drzewo
-selektywnie i zamiast ewaluacji symulowano losowe partie do końca,
-agregując wyniki w statystykach Monte Carlo per stan.
+Kocsis i Szepesvári~\cite{kocsis2006bandit} zaproponowali algorytm UCT (Upper
+Confidence Bounds applied to Trees), który optymalizuje fazę selekcji,
+wykorzystując regułę UCB1, aby zachować balans pomiędzy eksploracją (badaniem
+nowych ruchów) a eksploatacją (wybieraniem ruchów znanych jako dobre). Wartość
+wyboru węzła $i$ obliczana jest ze wzoru:
+\begin{equation}
+    UCT_i = \frac{w_i}{n_i} + c \sqrt{\frac{\ln N}{n_i}},
+\end{equation}
+gdzie $w_i$ to liczba zwycięstw, $n_i$ to liczba odwiedzin węzła potomnego,
+$N$ to liczba odwiedzin węzła rodzica, a $c$ to stała eksploracji. Kompleksowy
+przegląd MCTS i jego wariantów przedstawili Browne et al.~\cite{browne2012survey},
+stanowiący podstawowy punkt odniesienia metodologicznego dla niniejszego projektu.
 
-W tym samym roku Kocsis i Szepesvári~\cite{kocsis2006bandit} wprowadzili
-algorytm UCT (Upper Confidence Bounds applied to Trees), łączący metodę
-Coulom\,a z regułą wyboru z teorii bandytów wieloramiennych. Funkcja
-selekcji UCB1 daje matematycznie ugruntowany kompromis między
-eksploatacją węzłów już dobrze zbadanych a eksploracją mniej odwiedzonych.
-
-Kompleksowy przegląd MCTS i jego wariantów do roku 2012 przedstawili
-Browne et al.~\cite{browne2012survey} ze szczególnym uwzględnieniem
-zastosowań poza Go: gry kart, gry planszowe, planowanie. Praca ta jest
-podstawowym punktem odniesienia metodologicznego dla niniejszego projektu.
+\paragraph{Wykorzystanie w projekcie.}
+Zaimplementujemy klasyczny algorytm UCT, który posłuży jako punkt odniesienia
+(baseline). Pozwoli on sprawdzić, jak czyste przeszukiwanie losowe radzi sobie
+w Breakthrough, oraz stanowić będzie podstawę do oceny zysków z zaimplementowanych
+rozszerzeń.
 
 \subsection{Rozszerzenia MCTS istotne dla projektu}
 
-\paragraph{RAVE (Rapid Action Value Estimation).}
-Gelly i Silver~\cite{gelly2011monte} wprowadzili technikę RAVE oraz
-powiązane statystyki AMAF (All-Moves-As-First), będące rozszerzeniem
-wcześniejszych prac nad polityką uczenia w grze Go. Główna idea: jeśli
-ruch $m$ okazywał się dobry w rolloutach wychodzących z poddrzewa węzła
-$n$, to $m$ jest również prawdopodobnie dobry z samego $n$, nawet jeśli
-$m$ nie był jeszcze próbowany jako pierwszy. Selekcja RAVE blenduje
-oszacowania UCT i AMAF z wagą $\beta$ malejącą wraz z liczbą odwiedzin
-węzła --- oryginalna formuła $\beta(n, \tilde{n})$ uwzględnia zarówno
-liczbę odwiedzin węzła $n$, jak i liczbę odwiedzin AMAF $\tilde{n}$.
+\paragraph{RAVE i statystyki AMAF.}
+RAVE (Rapid Action Value Estimation), technika wprowadzona przez Gelly\,ego
+i Silvera~\cite{gelly2011monte}, służy do radykalnego przyspieszenia zbieżności
+algorytmu poprzez uogólnianie i współdzielenie informacji o jakości ruchów,
+co opiera się na heurystyce AMAF (All-Moves-As-First). Zamiast aktualizować
+statystyki danego ruchu tylko w konkretnym węźle drzewa, AMAF zakłada, że jeśli
+ruch był skuteczny w dowolnym momencie rozegranej symulacji (playoutu), to
+prawdopodobnie jest to ruch wartościowy również z poziomu węzła początkowego.
+RAVE modyfikuje politykę drzewa, łącząc klasyczne oszacowanie MCTS z oszacowaniem
+AMAF poprzez średnią ważoną:
+\begin{equation}
+    V = (1 - \beta) \cdot V_{\text{UCT}} + \beta \cdot V_{\text{AMAF}}.
+\end{equation}
+Waga $\beta$ jest dynamicznie dobierana i zależy od liczby odwiedzin. Przy małej
+liczbie symulacji $\beta$ jest bliskie 1 (dominuje AMAF, co daje szybkie, choć
+zgrubne rozeznanie), a w miarę wzrostu statystyk $\beta$ dąży do 0 (dominuje
+dokładna ocena z UCT).
 
-W~grze Go RAVE daje silne przyspieszenie zbieżności --- Gelly i Silver
-raportują 20--40\% wzrost win-rate przy tym samym budżecie iteracji.
-Kluczowe założenie sukcesu: \emph{translation invariance} wartości ruchu ---
-postawienie kamienia w punkcie $(x, y)$ ma podobną wartość w różnych
-kontekstach taktycznych.
+\textbf{Wykorzystanie w projekcie:} W grze Breakthrough ruchy pionków wzdłuż
+tych samych kolumn i ścieżek często zachowują swoją skuteczność bez względu na
+dokładną kolejność innych posunięć. Zaimplementowanie RAVE jest próbą
+wykorzystania tej właściwości do drastycznego poprawienia siły gry agenta przy
+niskich budżetach iteracyjnych.
 
-\paragraph{Progressive Bias / Progressive Strategies.}
-Chaslot et al.~\cite{chaslot2008progressive} zaproponowali rodzinę
-,,progressive strategies'' wstrzykujących wiedzę domenową do MCTS.
-Centralna z technik --- Progressive Bias --- dodaje do funkcji selekcji
-człon $H(m) / (n + 1)$, gdzie $H(m)$ jest oszacowaniem heurystycznym
-ruchu $m$. Człon ten dominuje wczesne iteracje (gdy $n$ jest małe),
-po czym zanika z rosnącym $n$, oddając kontrolę statystykom UCB1.
-Chaslot pokazał, że taka kombinacja przewyższa zarówno czyste UCT,
-jak i czystą heurystykę, w grze Go i innych domenach.
+\paragraph{Progressive Bias.}
+Progressive Bias to technika z rodziny strategii progresywnych (opisanych m.in.\
+przez Chaslota i in.~\cite{chaslot2008progressive}), służąca do wstrzykiwania
+z góry zdefiniowanej wiedzy domenowej (heurystyki) bezpośrednio do fazy selekcji
+w drzewie MCTS. Zamiast rozpoczynać przeszukiwanie ,,na ślepo'', algorytm na
+początku faworyzuje te gałęzie, które z perspektywy funkcji oceny wydają się
+najlepsze. Formułę selekcji modyfikuje się poprzez dodanie elementu
+uwzględniającego wartość heurystyczną $H_i$ dla danego ruchu $i$:
+\begin{equation}
+    \text{Wartość} = UCT_i + \frac{H_i}{n_i + 1}.
+\end{equation}
+Kluczowym elementem tego równania jest mianownik. Początkowo parametr $H_i$ ma
+ogromny wpływ na wybór ścieżki. W miarę gromadzenia statystyk i wzrostu wartości
+$n_i$ (liczby odwiedzin węzła), rola heurystyki płynnie zanika na rzecz symulacji
+Monte Carlo. Pozwala to na połączenie mocnych stron obu podejść: silnego początku
+gwarantowanego przez wiedzę ludzką oraz teoretycznej zbieżności do optimum
+zapewnianej przez MCTS.
 
-\paragraph{MAST (Move-Average Sampling Technique).}
-Finnsson i Björnsson~\cite{finnsson2008simulation} w kontekście General Game
-Playing zaproponowali MAST --- globalną tabelę średnich wyników per ruch,
-aktualizowaną po każdej symulacji. Ta tabela następnie wpływa na rolloutsy
-(softmax/$\epsilon$-greedy zamiast uniform random). MAST był rozważany
-jako alternatywna druga modyfikacja UCT (zamiast Progressive Bias),
-ostatecznie odrzucony jako mniej spójny tematycznie z heurystyką H3.
-
-\paragraph{Pozostałe rozszerzenia.}
-Lorentz~\cite{lorentz2016early} opisuje \emph{Early Playout Termination}:
-wczesne kończenie symulacji w stanach o oczywistym zwycięzcy, znacząco
-przyspieszające MCTS w grach z wyraźną strukturą terminalu (jak Breakthrough).
-Inne rozszerzenia warte uwagi (poza zakresem tego projektu): UCT z transposition
-tables, virtual loss dla zrównoleglenia, decisive/anti-decisive moves
-(Teytaud \& Teytaud, AAAI 2010).
+\textbf{Wykorzystanie w projekcie:} Zbudujemy specjalistyczną funkcję heurystyczną
+dla Breakthrough i włączymy ją w algorytm MCTS poprzez Progressive Bias. Pozwoli
+to zbadać, czy ukierunkowanie MCTS w początkowej fazie daje lepsze rezultaty niż
+poleganie na wariancie uczącym się od zera.
 
 \subsection{Breakthrough w literaturze MCTS}
 
-\paragraph{Status rozwiązaniowy gry.}
+\paragraph{State of the art Breakthrough.}
 Saffidine et al.~\cite{saffidine2011solving} opracowali techniki ,,race
 patterns'' i Job-Level Proof Number Search, pozwalające im rozwiązać
 warianty Breakthrough do planszy 6$\times$5 włącznie; we wszystkich
 \emph{wygrywa pierwszy gracz}. Niedawno Björnsson et al.~\cite{bjornsson2026solving}
 rozwiązali również planszę 6$\times$6 (także na korzyść pierwszego gracza).
-Klasyczna plansza 8$\times$8 pozostaje natomiast nierozwiązana --- nie ma
+Klasyczna plansza 8$\times$8 pozostaje natomiast nierozwiązana -- nie ma
 znanego solwera o ograniczonych zasobach pamięciowych zdolnego do pełnego
 przeszukania jej drzewa. To czyni Breakthrough 8$\times$8 atrakcyjnym
 benchmarkiem: nie istnieje wyrocznia ,,perfekcyjnego gracza'' definiująca
 sufit jakości, więc porównanie wariantów MCTS ma realną wartość badawczą.
 
 \paragraph{Heurystyki ewaluacji.}
-Lorentz~\cite{lorentz2011breakthrough} (w pracy nad EinStein würfelt nicht!,
-ale stosowanej również do Breakthrough) opisuje proste heurystyki ewaluacji
+Lorentz~\cite{lorentz2011breakthrough} w swojej pracy opisuje proste heurystyki ewaluacji
 pozycji zawierające zaawansowanie pionków, materiał oraz bezpieczeństwo
 struktury (pionki na krawędziach są bezpieczniejsze, ponieważ mogą zostać
 zbite tylko z jednej strony zamiast dwóch). Te elementy stanowią podstawę
 naszej implementacji \texttt{HeuristicAgent}.
-
-\paragraph{Branching factor i głębokość.}
-W typowej pozycji Breakthrough 8$\times$8 liczba legalnych ruchów wynosi
-około 15--30, a głębokość partii (przy losowej grze) to 40--80 półruchów.
-Z naszych eksperymentów (sekcja~\ref{sec:wyniki}) średnia długość partii
-UCT vs UCT na planszy 8$\times$8 wynosi ok.\ 57 ruchów. Branching factor
-zalicza Breakthrough do gier ,,małych'' z punktu widzenia MCTS ---
-znacznie mniej niż Go (200--400), porównywalnie do Hex (odpowiadający
-rozmiar $11 \times 11$ ma branching ok. 80--100).
-
-\paragraph{Status badawczy Breakthrough 8$\times$8.}
-Klasyczna plansza 8$\times$8 pozostaje \emph{nierozwiązana} --- mimo postępów
-w rozwiązywaniu mniejszych wariantów (do 6$\times$5 \cite{saffidine2011solving}
-oraz 6$\times$6 \cite{bjornsson2026solving}), dla 8$\times$8 nie istnieje znany
-,,perfekcyjny gracz''. Brak odniesienia do optimum czyni z 8$\times$8
-wdzięczny poligon dla \emph{porównawczych} badań empirycznych nad wariantami
-MCTS, gdzie miarą jest względna siła agentów, a nie odległość od gry idealnej.

@@ -131,7 +131,6 @@ report/main.out
 report/main.run.xml
 report/main.toc
 report/main.xdv
-report/main.pdf
 report/xelatex*.fls
 report/prezentacja.aux
 report/prezentacja.fdb_latexmk

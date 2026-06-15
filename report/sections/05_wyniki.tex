@@ -1,109 +1,101 @@
 \section{Wyniki}
 \label{sec:wyniki}
 
-W niniejszej sekcji prezentujemy wyniki sześciu eksperymentów odpowiadających
-hipotezom H1--H6, wszystkie przeprowadzone na klasycznej planszy 8$\times$8.
-Wszystkie odsetki wygranych raportowane są wraz z 95\%
-przedziałami ufności wyliczanymi metodą Wilsona \cite{wilson1927probable}.
-
-\subsection{H1: RAVE vs vanilla UCT}
+\subsection{H1: RAVE vs bazowy UCT}
 \label{sec:wyniki-h1}
 
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{figures/h1_rave_vs_uct}
-    \caption{Skalowanie odsetków wygranych RAVE i UCT z budżetem iteracji
-    (8$\times$8, turniej round-robin). Punkty pokazują ogólny win-rate każdego
+    \caption{Skalowanie odsetków wygranych RAVE i UCT z budżetem iteracji. Punkty pokazują ogólny win-rate każdego
     agenta we wszystkich rozegranych przez niego partiach. Linia 50\% oznacza
     neutralność. Obie metody zyskują z budżetem; RAVE nie wyprzedza UCT przy
     żadnym budżecie.}
     \label{fig:h1}
 \end{figure}
 
-\paragraph{Dane liczbowe --- bezpośrednie mecze RAVE vs UCT przy tym samym
+\paragraph{Dane liczbowe -- bezpośrednie mecze RAVE vs UCT przy tym samym
 budżecie (n=100 partii na budżet):}
 \begin{center}
 \begin{tabular}{rcccc}
 \toprule
 \textbf{Budżet} & \textbf{RAVE wygrywa} & \textbf{Win-rate} & \textbf{$p$ (vs 0,5)} & \textbf{Status} \\
 \midrule
-5\,000   & 49/100 & 49,0\% & 0,92 & parytet \\
-10\,000  & 48/100 & 48,0\% & 0,76 & parytet \\
-50\,000  & 54/100 & 54,0\% & 0,48 & parytet \\
-100\,000 & 39/100 & \textbf{39,0\%} & 0,035 & RAVE gorszy \\
+5\,000   & 49/100 & 49,0\% & 0,92 & bez różnicy \\
+10\,000  & 48/100 & 48,0\% & 0,76 & bez różnicy \\
+50\,000  & 54/100 & 54,0\% & 0,48 & bez różnicy \\
+100\,000 & 39/100 & \textbf{39,0\%} & 0,035 & poniżej 50\% \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-Hipoteza H1 jest \emph{sfalsyfikowana}: RAVE nie wygrywa istotnie z vanilla UCT
+Hipoteza H1 jest \emph{odrzucona}: RAVE nie wygrywa istotnie z bazowym UCT
 przy żadnym budżecie, a przy 100\,000 iteracji \emph{przegrywa} istotnie
 statystycznie (39,0\%, $p = 0{,}035$). Rezultat jest odmienny od oczekiwań
-literaturowych z dziedziny Go, gdzie RAVE przewyższa vanilla UCT przy każdym
+literaturowych z dziedziny Go, gdzie RAVE przewyższa bazowy UCT przy każdym
 praktycznym budżecie \cite{gelly2011monte}.
 
 Interpretujemy to następująco: RAVE akumuluje wartości AMAF przez wszystkie
-pozycje w drzewie i symulacjach, zakładając przesuwalność wartości ruchu
-(translation invariance). Założenie to zachodzi w Go (kamień postawiony
+pozycje w drzewie i symulacjach, zakładając przesuwalność wartości ruchu. Założenie to zachodzi w Go (kamień postawiony
 w punkcie $X$ ma podobną wartość w różnych kontekstach), ale załamuje się
 w Breakthrough, gdzie wartość ruchu (np.\ ,,pionek z pola $X$ na $Y$'') silnie
-zależy od reszty pozycji. Sygnał AMAF jest więc niemal nieinformatywny;
-przy największym budżecie staje się wręcz szkodliwy, podczas gdy vanilla UCT
+zależy od reszty pozycji. Sygnał AMAF jest więc mało informatywny,
+a przy największym budżecie działa niekorzystnie, podczas gdy bazowy UCT
 efektywnie wykorzystuje rosnący budżet do precyzowania szacunków per-stan.
-Zauważmy, że poprawność samej implementacji RAVE potwierdziliśmy niezależnie
+Poprawność samej implementacji RAVE potwierdziliśmy niezależnie
 (sekcja~\ref{sec:llm}): przy zneutralizowanym członie AMAF ($\beta \to 0$)
-RAVE odtwarza siłę UCT, co dowodzi, że obserwowany spadek pochodzi z heurystyki
+RAVE odtwarza siłę UCT, co wskazuje, że obserwowany spadek pochodzi z heurystyki
 AMAF, a nie z błędu w szkielecie algorytmu.
 
-\subsection{H2: Progressive Bias vs vanilla UCT}
+\subsection{H2: Progressive Bias vs bazowy UCT}
 \label{sec:wyniki-h2}
 
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{figures/h2_pb_vs_uct}
     \caption{Skalowanie odsetków wygranych Progressive Bias i UCT (8$\times$8).
     Człon bias w selekcji oparty na heurystyce porządkowania ruchów ($\pi/1000$).
-    Krzywe PB i UCT pokrywają się na całym zakresie budżetów --- brak
+    Krzywe PB i UCT pokrywają się na całym zakresie budżetów -- brak
     statystycznie istotnej różnicy.}
     \label{fig:h2}
 \end{figure}
 
-\paragraph{Dane liczbowe --- bezpośrednie mecze PB vs UCT przy tym samym
+\paragraph{Dane liczbowe -- bezpośrednie mecze PB vs UCT przy tym samym
 budżecie (n=100 partii na budżet):}
 \begin{center}
 \begin{tabular}{rcccc}
 \toprule
 \textbf{Budżet} & \textbf{PB wygrywa} & \textbf{Win-rate} & \textbf{$p$ (vs 0,5)} & \textbf{Status} \\
 \midrule
-5\,000   & 50/100 & 50,0\% & 1,00 & parytet \\
-10\,000  & 43/100 & 43,0\% & 0,19 & parytet \\
-50\,000  & 55/100 & 55,0\% & 0,37 & parytet \\
-100\,000 & 46/100 & 46,0\% & 0,48 & parytet \\
+5\,000   & 50/100 & 50,0\% & 1,00 & bez różnicy \\
+10\,000  & 43/100 & 43,0\% & 0,19 & bez różnicy \\
+50\,000  & 55/100 & 55,0\% & 0,37 & bez różnicy \\
+100\,000 & 46/100 & 46,0\% & 0,48 & bez różnicy \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-W żadnym z testowanych budżetów PB nie pokonuje UCT istotnie statystycznie ---
+W żadnym z testowanych budżetów PB nie pokonuje UCT istotnie statystycznie --
 wszystkie wyniki oscylują wokół 50\% ($p > 0{,}19$). Hipoteza H2 jest zatem
 \emph{niejednoznaczna}: nie można odrzucić hipotezy zerowej o braku różnicy
 względem UCT.
 
 Interpretacja: heurystyka użyta w członie bias to znormalizowana funkcja
-porządkowania ruchów (Algorytm~2) --- prostsza niż pełna funkcja ewaluacji
+porządkowania ruchów -- prostsza niż pełna funkcja ewaluacji
 w agentcie heurystycznym (sekcja~\ref{sec:wyniki-h3}). Wiedza domenowa
 wstrzykiwana przez PB jest więc ograniczona, a jej wpływ dodatkowo zanika
-wraz z liczbą odwiedzin węzła ($H/(n+1)$). W efekcie PB zachowuje dobrą
-zbieżność asymptotyczną UCT, lecz nie daje mierzalnej przewagi w tej grze.
+wraz z liczbą odwiedzin węzła ($H/(n+1)$).
 
-\subsection{H3: Heurystyka alpha-beta vs UCT --- poszukiwanie cross-over}
+\subsection{H3: Heurystyka alpha-beta vs UCT}
 \label{sec:wyniki-h3}
 
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{figures/h3_heuristic_vs_uct}
     \caption{Odsetek wygranych heurystyki (alpha-beta z głębokością 5) względem
     rosnącego budżetu iteracji UCT na planszy 8$\times$8. Oś X logarytmiczna.
-    Heurystyka miażdży UCT w całym testowanym zakresie; nawet przy 500\,000 iteracji
-    wciąż wygrywa $\sim$90\% partii --- punkt krzyżowania nie zostaje osiągnięty.}
+    Heurystyka wygrywa z UCT w całym testowanym zakresie; przy 100\,000 iteracji
+    nadal wygrywa 94\% partii.}
     \label{fig:h3}
 \end{figure}
 
@@ -115,43 +107,30 @@ heurystyka vs UCT):}
 \toprule
 \textbf{Budżet UCT} & \textbf{Heur wygrywa} & \textbf{Win-rate} & \textbf{95\% CI} & \textbf{UCT czas/ruch} \\
 \midrule
-500      & 100/100 & 100,0\% & [96,3; 100]  & $\sim$0,005 s \\
+500      & 99/100  & 99,0\%  & [94,6; 99,8] & $\sim$0,005 s \\
 1\,000   & 100/100 & 100,0\% & [96,3; 100]  & $\sim$0,01 s \\
-5\,000   & 96/100  & 96,0\%  & [90,2; 98,4] & $\sim$0,05 s \\
-10\,000  & 97/100  & 97,0\%  & [91,5; 99,0] & $\sim$0,10 s \\
-50\,000  & 97/100  & 97,0\%  & [91,5; 99,0] & $\sim$0,50 s \\
-100\,000 & 95/100  & 95,0\%  & [88,8; 97,8] & $\sim$0,97 s \\
-200\,000 & 90/100  & 90,0\%  & [82,6; 94,5] & $\sim$1,9 s \\
-300\,000 & 91/100  & 91,0\%  & [83,8; 95,2] & $\sim$2,7 s \\
-500\,000 & 90/100  & 90,0\%  & [82,6; 94,5] & $\sim$4,6 s \\
+5\,000   & 98/100  & 98,0\%  & [93,0; 99,4] & $\sim$0,05 s \\
+10\,000  & 98/100  & 98,0\%  & [93,0; 99,4] & $\sim$0,10 s \\
+50\,000  & 94/100  & 94,0\%  & [87,5; 97,2] & $\sim$0,50 s \\
+100\,000 & 94/100  & 94,0\%  & [87,5; 97,2] & $\sim$0,97 s \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-Heurystyka pozostaje dominująca w całym praktycznym zakresie. Pierwsza część
-hipotezy (wyższość heurystyki przy niskich budżetach) jest spektakularnie
-potwierdzona. Druga część (cross-over przy wysokich budżetach) jest
-\emph{nieosiągnięta}: win-rate maleje bardzo łagodnie ze 100\% przy UCT(500)
-do $\sim$90\% przy UCT(500\,000) i tam się \emph{wypłaszcza}, pozostając daleko
-od parytetu. Bezpośrednio przetestowaliśmy budżet 5$\times$ większy niż wcześniejsze
-100\,000 --- i UCT nadal przegrywa 9 na 10 partii; teoretyczny cross-over (50\%)
-leży więc znacznie powyżej $10^6$ iteracji, daleko poza praktycznym zakresem
-(UCT(500\,000) zajmuje już $\sim$4,5\,s/ruch).
-Na większej planszy 8$\times$8 (głębsze, bardziej taktyczne partie) przewaga
-heurystyki jest nawet wyraźniejsza niż przy mniejszych wariantach, ponieważ
-losowe symulacje słabiej przybliżają wartość pozycji.
+Pierwsza część hipotezy (wyższość heurystyki przy niskich budżetach) jest
+potwierdzona. Druga część (przewaga UCT przy wysokich budżetach) nie zostaje
+osiągnięta: win-rate maleje łagodnie (z 99\% do 94\%) i pozostaje daleko od
+50\% nawet przy UCT(100\,000), który zajmuje już $\sim$1\,s na ruch.
 
-Wynik jest mocnym argumentem za stosowaniem prostych deterministycznych
-graczy z funkcją ewaluacji w grach o wyraźnej strukturze taktycznej
-i umiarkowanym branching factor. Heurystyka w naszej implementacji wybiera
-ruch w $\sim$10 ms (depth 5, 8$\times$8), więc partia $\sim$60 ruchów to
-poniżej sekundy --- rzędy wielkości taniej niż UCT(100\,000), a przy tym
-istotnie silniej grające.
+Heurystyka wybiera ruch w $\sim$10 ms, więc cała partia trwa poniżej sekundy --
+o rzędy wielkości szybciej niż UCT(100\,000), a przy tym gra silniej. Pokazuje
+to przydatność prostych graczy z funkcją ewaluacji w grach taktycznych
+o umiarkowanym branching factor.
 
 \subsection{H4: Przewaga pierwszego gracza}
 \label{sec:wyniki-h4}
 
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{figures/h4_first_player_advantage}
     \caption{Udział zwycięstw białych (pierwszego gracza) i czarnych
@@ -165,15 +144,15 @@ Białe wygrały 247/500 = \textbf{49,4\%} partii, 95\% CI Wilsona $[45{,}0\%;\ 5
 (średnia długość partii ok. 59 ruchów). Przedział obejmuje 50\%, brak więc
 istotnej statystycznie przewagi pierwszego gracza.
 
-Hipoteza H4 jest sfalsyfikowana: nie stwierdzamy istotnej statystycznie przewagi
+Hipoteza H4 jest odrzucona: nie stwierdzamy istotnej statystycznie przewagi
 białych. Szerokość CI (ok. $\pm$4,4 pp) jest wystarczająco wąska, by uznać,
-że ewentualna ,,prawdziwa'' przewaga jest mniejsza niż 4 pp --- co metodologicznie
+że ewentualna ,,prawdziwa'' przewaga jest mniejsza niż 4 pp -- co metodologicznie
 odpowiada brakowi przewagi praktycznej.
 
 Interpretacja:
 \begin{itemize}[nosep]
     \item Przy MCTS o zbliżonej sile oboje gracze grają sub-optymalnie
-          w sposób przybliżonie symetryczny --- przewaga tempa pierwszego
+          w sposób przybliżonie symetryczny -- przewaga tempa pierwszego
           ruchu zostaje ,,wyzerowana'' przez błędy obu stron.
     \item Możliwe, że przy perfekcyjnej grze (jak w rozwiązanych wariantach
           6$\times$5 \cite{saffidine2011solving} i 6$\times$6
@@ -182,21 +161,21 @@ Interpretacja:
           do tej granicy.
 \end{itemize}
 
-\subsection{H5: Strojenie stałej eksploracji $c$}
+\subsection{H5: Stała eksploracji $c$}
 \label{sec:wyniki-h5}
 
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.7\textwidth]{figures/h5_c_heatmap}
-    \caption{Macierz win-rate dla turnieju round-robin pięciu wartości
-    stałej eksploracji $c$ (UCT 10\,000 iteracji, 8$\times$8). Wiersz --- $c$ gracza,
-    kolumna --- $c$ przeciwnika. Skala dwubiegunowa wycentrowana na 50\%: czerwień
-    oznacza przewagę gracza z wiersza, błękit --- przeciwnika z kolumny. Wiersz
+    \caption{Macierz win-rate dla turnieju każdy z każdym pięciu wartości
+    stałej eksploracji $c$ (UCT 10\,000 iteracji, 8$\times$8). Wiersz -- $c$ gracza,
+    kolumna -- $c$ przeciwnika. Skala dwubiegunowa wycentrowana na 50\%: czerwień
+    oznacza przewagę gracza z wiersza, błękit -- przeciwnika z kolumny. Wiersz
     $c = 0{,}5$ jest wyraźnie czerwony i dominuje całą tabelę.}
     \label{fig:h5_heatmap}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.7\textwidth]{figures/h5_c_bar}
     \caption{Ogólny win-rate każdej wartości $c$ (uśredniony po obu kolorach
@@ -223,27 +202,27 @@ Interpretacja:
 Hipoteza H5 (istnienie wewnętrznego optimum $c^\star$ o kształcie odwróconego U)
 \emph{nie znajduje potwierdzenia} w badanym zakresie. Najsilniejsza okazuje się
 \emph{najniższa} testowana wartość $c = 0{,}5$ (75,7\% wygranych, wysoce istotnie),
-a win-rate maleje wraz ze wzrostem $c$ --- nie obserwujemy spadku przy małym $c$,
+a win-rate maleje wraz ze wzrostem $c$ -- nie obserwujemy spadku przy małym $c$,
 który zamykałby krzywą w kształt odwróconego U. Co więcej, teoretyczna wartość
-$c = \sqrt{2} \approx 1{,}41$ (okolice $c = 1{,}5$) wypada wyraźnie poniżej parytetu.
+$c = \sqrt{2} \approx 1{,}41$ (okolice $c = 1{,}5$) wypada wyraźnie poniżej 50\%.
 
 Interpretacja: Breakthrough jest grą silnie taktyczną, w której kluczowe są
 konkretne, wymuszone warianty, a nie szerokie zwiedzanie drzewa. Niski $c$
 (nacisk na eksploatację) pozwala MCTS głębiej drążyć obiecujące linie, co
 przekłada się na realną przewagę. Optymalne $c^\star$ leży zatem \emph{na lub
-poniżej} dolnej granicy testowanego zakresu --- co stanowi praktyczną wskazówkę
+poniżej} dolnej granicy testowanego zakresu -- co stanowi praktyczną wskazówkę
 do strojenia UCT w tej grze i sugeruje rozszerzenie eksperymentu o $c \in \{0{,}1,\ 0{,}25\}$.
 
 \subsection{H6: Czas decyzji w funkcji numeru ruchu}
 \label{sec:wyniki-h6}
 
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{figures/h6_decision_time}
     \caption{Czas decyzji UCT w funkcji numeru półruchu (8$\times$8), w rozbiciu
     na budżet iteracji. Każdy półruch przypisano do budżetu agenta, który go
     wykonał. Lewy panel: mediana czasu wraz z pasmem międzykwartylowym
-    w trakcie partii --- czas jest najwyższy w otwarciu i maleje monotonicznie.
+    w trakcie partii -- czas jest najwyższy w otwarciu i maleje monotonicznie.
     Prawy panel: skalowanie mediany czasu na ruch z budżetem iteracji.}
     \label{fig:h6}
 \end{figure}
@@ -261,9 +240,9 @@ do strojenia UCT w tej grze i sugeruje rozszerzenie eksperymentu o $c \in \{0{,}
 \end{tabular}
 \end{center}
 
-Hipoteza H6 (czas decyzji rośnie w środkowej fazie gry) jest \emph{sfalsyfikowana}.
+Hipoteza H6 (czas decyzji rośnie w środkowej fazie gry) jest \emph{odrzucona}.
 Wbrew oczekiwaniom, czas na ruch jest \emph{najwyższy w otwarciu}
-i maleje monotonicznie w miarę postępu partii --- nie obserwujemy maksimum
+i maleje monotonicznie w miarę postępu partii -- nie obserwujemy maksimum
 w ruchach 15--40. Wyjaśnienie tkwi w naturze kosztu pojedynczej iteracji MCTS:
 przy stałym budżecie iteracji dominującym kosztem jest długość losowej symulacji
 (rolloutu do stanu terminalnego), a ta jest najdłuższa na początku gry i kurczy
@@ -275,7 +254,7 @@ $\to$ 0,93 s dla 5k $\to$ 50k iteracji).
 \paragraph{Uwaga metodologiczna.}
 Ponieważ w tym eksperymencie kojarzymy agentów o różnych budżetach, każdy
 półruch przypisujemy do budżetu agenta, który go faktycznie wykonał (ruchy
-parzyste --- biały, nieparzyste --- czarny). Dzięki temu krzywe odzwierciedlają
+parzyste -- biały, nieparzyste -- czarny). Dzięki temu krzywe odzwierciedlają
 rzeczywisty koszt decyzji danego budżetu, a nie artefakt naprzemiennej gry
 graczy o różnej sile.
 
@@ -289,44 +268,28 @@ po wszystkich sześciu zbiorach danych (H1--H6).
 Rozkłady długości partii są zbliżone we wszystkich eksperymentach
 (rys.~\ref{fig:cross_len}): mediana 55--60 półruchów. Partie na planszy
 8$\times$8 rzadko kończą się przed 40.\ półruchem i niemal nigdy nie przekraczają
-75 --- przewaga taktyczna jest realizowana stopniowo przez marsz pionków.
+75 -- przewaga taktyczna jest realizowana stopniowo przez marsz pionków.
 
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{figures/cross_game_length_distributions}
     \caption{Rozkłady długości partii (skrzypce) w sześciu eksperymentach.}
     \label{fig:cross_len}
 \end{figure}
 
-\paragraph{Przewaga pierwszego gracza --- ujęcie zbiorcze.}
+\paragraph{Przewaga pierwszego gracza -- ujęcie zbiorcze.}
 Odsetek wygranych białych mieści się w wąskim paśmie 48--52\% we wszystkich
 sześciu eksperymentach, a każdy 95\% CI Wilsona obejmuje 50\%
 (rys.~\ref{fig:cross_fp}). Potwierdza to wniosek z H4 w szerszym kontekście
 (różne algorytmy, budżety i stałe $c$): przy MCTS o zbliżonej sile przewaga
 pierwszego ruchu jest pomijalna.
 
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{figures/cross_first_player_advantage}
     \caption{Odsetek wygranych białych w każdym z eksperymentów (95\% CI Wilsona).
     Wszystkie przedziały obejmują 50\%.}
     \label{fig:cross_fp}
-\end{figure}
-
-\paragraph{Asymetria czasu namysłu w H3.}
-Rys.~\ref{fig:cross_time} zestawia czas na ruch heurystyki (alpha-beta $d=5$,
-niemal stały, $\sim$0,25--0,37 s) z czasem UCT, który skaluje się od $\sim$7 ms
-(500 iter.) do $\sim$1,1 s (100k iter.). Krzywe przecinają się dopiero ok.
-50\,000 iteracji --- powyżej tego budżetu UCT myśli dłużej niż heurystyka, mimo że
-nadal przegrywa 94\% partii. Ilustruje to praktyczną przewagę heurystyki: jest
-jednocześnie silniejsza i tańsza w niemal całym zakresie.
-
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=0.8\textwidth]{figures/cross_h3_time_asymmetry}
-    \caption{Średni czas na ruch: heurystyka o stałej głębokości vs skalujący się
-    UCT (osie logarytmiczne).}
-    \label{fig:cross_time}
 \end{figure}
 
 \subsection{Partie człowiek vs AI}
@@ -345,35 +308,35 @@ przy bardzo dużych budżetach. Postrzegana trudność (ocena 1--10 wystawiana p
 partii) miała medianę 4,5 i nie rosła wyraźnie z budżetem iteracji
 (rys.~\ref{fig:human_diff}).
 
-Czas namysłu AI skaluje się z budżetem --- od ułamków sekundy przy 10k iteracji
+Czas namysłu AI skaluje się z budżetem -- od ułamków sekundy przy 10k iteracji
 do kilkudziesięciu sekund na ruch przy 1M (rys.~\ref{fig:human_aitime}).
 Człowiek namyślał się medianowo $\sim$5,2 s na ruch (AI $\sim$4,2 s), przy czym
 ludzki czas jest największy w fazie środkowej, gdy pozycja jest najbardziej
 taktyczna (rys.~\ref{fig:human_overgame}).
 
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{figures/human_outcome_per_game}
-    \caption{Przegląd 12 partii człowiek--AI (zielony --- człowiek wygrał,
-    czerwony --- przegrał); oś pozioma to długość partii.}
+    \caption{Przegląd 12 partii człowiek--AI (zielony -- człowiek wygrał,
+    czerwony -- przegrał); oś pozioma to długość partii.}
     \label{fig:human_outcome}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{figures/human_difficulty_vs_strength}
     \caption{Postrzegana trudność (1--10) względem budżetu iteracji AI.}
     \label{fig:human_diff}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{figures/human_ai_thinktime_scaling}
     \caption{Średni czas AI na ruch względem budżetu iteracji (osie logarytmiczne).}
     \label{fig:human_aitime}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{figures/human_thinktime_over_game}
     \caption{Czas namysłu na ruch w trakcie partii: człowiek vs AI
@@ -381,45 +344,3 @@ taktyczna (rys.~\ref{fig:human_overgame}).
     \label{fig:human_overgame}
 \end{figure}
 
-\subsection{Synteza ilościowa}
-
-Tabela~\ref{tab:synteza} podsumowuje status każdej hipotezy.
-
-\begin{table}[ht]
-\centering
-\caption{Synteza wyników eksperymentalnych.}
-\label{tab:synteza}
-\begin{tabular}{p{3cm}p{6cm}p{4cm}}
-\toprule
-\textbf{Hipoteza} & \textbf{Wynik} & \textbf{Status} \\
-\midrule
-H1: RAVE > UCT &
-49,0 / 48,0 / 54,0 / 39,0\%
-(@ 5k / 10k / 50k / 100k iter) &
-Sfalsyfikowana \\
-\midrule
-H2: PB > UCT &
-50,0 / 43,0 / 55,0 / 46,0\%
-(@ 5k / 10k / 50k / 100k iter) &
-Niejednoznaczna \\
-\midrule
-H3: heurystyka > UCT przy niskim budżecie, < UCT przy wysokim &
-100\% $\to$ 90\%
-(@ 500--500\,000 iter) &
-Częściowo potwierdzona \\
-\midrule
-H4: białe mają przewagę &
-49,4\% wygranych białych
-(8$\times$8, n=500) &
-Sfalsyfikowana \\
-\midrule
-H5: $c$ ma nieliniowy wpływ (optimum $c^\star$) &
-najlepsze $c=0{,}5$ (75,7\%), monotoniczny spadek do $c=3{,}0$ (37,8\%) &
-Sfalsyfikowana \\
-\midrule
-H6: czas decyzji rośnie w środku gry &
-czas maleje monotonicznie od otwarcia &
-Sfalsyfikowana \\
-\bottomrule
-\end{tabular}
-\end{table}

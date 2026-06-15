@@ -1,70 +1,9 @@
-\section{Wykorzystanie modeli językowych}
+\section{Wykorzystanie modeli językowych LLM}
 \label{sec:llm}
 
-Zgodnie z wymaganiami przedmiotu, niniejsza sekcja dokumentuje sposób
-wykorzystania dużych modeli językowych (LLM) podczas realizacji projektu.
-Korzystaliśmy z modelu \textbf{Claude Opus 4.7 (Anthropic)} jako narzędzia
-wspomagającego implementację i redakcję, przy zachowaniu pełnej decyzyjności
-i odpowiedzialności merytorycznej po stronie autorów.
-
-\subsection{Decyzje merytoryczne}
-
-Wszystkie kluczowe decyzje projektu zostały podjęte przez autorów:
-
+Modele językowe wspomagały nas w trzech obszarach:
 \begin{itemize}[nosep]
-    \item \emph{Wybór gry} (Breakthrough) na klasycznej planszy 8$\times$8
-          wraz z uzasadnieniem metodologicznym.
-    \item \emph{Sformułowanie hipotez badawczych} H1--H6 oraz dobór
-          rozszerzeń MCTS do porównania (RAVE, Progressive Bias, alpha-beta).
-    \item \emph{Wybór hiperparametrów} (budżety iteracji, wartość $b^2$ dla RAVE,
-          waga bias dla Progressive Bias, głębokość alpha-beta) oraz ich
-          empiryczne dostrojenie do specyfiki gry.
-    \item \emph{Decyzje metodologiczne} (sekwencyjne MCTS, zrównoleglenie wyłącznie na
-          poziomie batchowania eksperymentów, master-seed $\to$ SHA-256 $\to$
-          seedy partii, Wilson 95\% CI dla statystyki).
-    \item \emph{Interpretacje wyników} i wnioski (m.in.\ wyjaśnienie
-          nieskuteczności RAVE w Breakthrough przez brak translation
-          invariance, ekstrapolacja punktu krzyżowania w H3).
-\end{itemize}
-
-\subsection{Wsparcie LLM w implementacji}
-
-LLM był używany jako narzędzie do generowania szkiców kodu w językach Rust
-i Python na podstawie naszych specyfikacji (struktur danych, interfejsów,
-algorytmów). Każdy generowany fragment podlegał recenzji autorów --- testom,
-inspekcji manualnej oraz weryfikacji zgodności z literaturą algorytmiczną.
-
-W trakcie pracy zidentyfikowaliśmy kilka błędów w generowanych szkicach,
-które wymagały poprawek:
-walidacja parsera tekstowej reprezentacji stanu gry;
-przepełnienie arytmetyczne w sprawdzaniu rozmiaru planszy;
-oraz dwa istotne błędy w pierwszej wersji agenta RAVE (pominięcie ruchów
-in-tree w aktualizacji AMAF oraz źle skalibrowana formuła $\beta$),
-których wykrycie i naprawa były kluczowe dla uzyskania wyników opisanych
-w sekcji~\ref{sec:wyniki}.
-
-\subsection{Wsparcie LLM w redakcji raportu}
-
-Niniejszy raport został zredagowany przy częściowym współudziale LLM
-przy formułowaniu zdań i strukturyzowaniu sekcji. Wszystkie merytoryczne
-twierdzenia, interpretacje wyników oraz wnioski pochodzą od autorów.
-Bibliografia była weryfikowana ręcznie ---
-wszystkie cytowane pozycje są recenzowanymi publikacjami z konferencji
-i czasopism o ustalonej renomie (Computers and Games, IEEE Transactions
-on Games, Artificial Intelligence, AAAI).
-
-\subsection{Świadomość ograniczeń}
-
-Korzystanie z LLM wprowadza ryzyka, które staraliśmy się minimalizować:
-
-\begin{itemize}[nosep]
-    \item \emph{Halucynacje cytowań:} każda pozycja w bibliografii
-          zweryfikowana niezależnie w bazach Springer / IEEE / AAAI.
-    \item \emph{Pozornie poprawny kod:} weryfikacja przez testy
-          (cross-validation 1000 partii Rust vs Python) i eksperymentalne
-          sprawdzenie zachowania (parametr sweep wykrył błąd RAVE,
-          którego nie ujawniłaby sama inspekcja kodu).
-    \item \emph{Stronniczość interpretacji:} negatywne wyniki (H1, H4, H5, H6
-          sfalsyfikowane, H2 niejednoznaczna) raportujemy uczciwie z przedziałami
-          ufności, bez naciągania danych ku zgodności z hipotezami.
+    \item redakcji niniejszego raportu,
+    \item implementacji graficznego interfejsu użytkownika (GUI),
+    \item pisaniu kodu generującego część wykresów.
 \end{itemize}

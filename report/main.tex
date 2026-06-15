@@ -1,4 +1,4 @@
-\documentclass[11pt,a4paper]{article}
+\documentclass[11pt,a4paper]{scrartcl}
 
 \usepackage{fontspec}
 \usepackage{polyglossia}
@@ -7,6 +7,7 @@
 \usepackage[a4paper,margin=2.5cm]{geometry}
 \usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
 \usepackage{graphicx}
+\usepackage{float}
 \usepackage{hyperref}
 \usepackage{booktabs}
 \usepackage{amsmath}
@@ -24,16 +25,19 @@
     urlcolor=blue
 }
 
-\title{Zastosowanie MCTS/UCT do gry Breakthrough 8$\times$8 \\
-       \large Raport końcowy --- MSI2, semestr letni 2025/26}
+\subject{Metody Sztucznej Inteligencji 2 \textperiodcentered{} semestr letni 2025/26}
+\title{Zastosowanie MCTS/UCT do gry Breakthrough 8$\times$8}
+\subtitle{Raport końcowy}
 \author{Hubert Sobociński \and Sebastian Rydz}
 \date{\today}
 
 \begin{document}
+
 \maketitle
 
 \input{sections/00_streszczenie}
 
+\newpage
 \tableofcontents
 \newpage
 

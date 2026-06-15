@@ -1,128 +1,99 @@
 \section{Wstęp}
 \label{sec:wstep}
 
-\subsection{Cel projektu}
-
-Niniejszy projekt zastosowuje algorytm Monte Carlo Tree Search (MCTS) z regułą
-selekcji UCT do gry \emph{Breakthrough} 8$\times$8, by przebadać empirycznie
-sześć hipotez badawczych dotyczących skuteczności klasycznych rozszerzeń
-MCTS oraz porównania MCTS z deterministyczną heurystyką alpha-beta.
-Projekt obejmuje pełny pipeline badawczy: implementację silnika gry,
-implementację czterech agentów AI (vanilla UCT, RAVE, Progressive Bias,
-heurystyka alpha-beta), eksperymentalną walidację hipotez oraz analizę
-statystyczną wyników.
-
 \subsection{Gra Breakthrough}
 
-\paragraph{Zasady.}
-Breakthrough to dwuosobowa gra strategiczna z pełną informacją, zaprojektowana
-przez Dana Trokę w 2000 roku jako zwycięski projekt konkursu 8$\times$8
-Game Design Competition. Plansza jest prostokątna; dwa pierwsze rzędy
-po każdej stronie wypełnione są pionkami danego koloru. Gracze ruszają
-się na zmianę, każdy ruch przesuwa pionek o jedno pole do przodu (prosto
-lub po skosie):
-\begin{itemize}[nosep]
-    \item ruch prosty jest dozwolony tylko na puste pole,
-    \item ruch po skosie może być wykonany na pole puste lub zajęte przez
-          pionek przeciwnika (bicie),
-    \item bicie prosto jest niedozwolone, pionki nie mogą się cofać.
-\end{itemize}
-Gra kończy się zwycięstwem gracza, który: (a) doprowadzi pionek do
-ostatniego rzędu przeciwnika, (b) zbije wszystkie pionki przeciwnika,
-lub (c) uniemożliwi przeciwnikowi wykonanie jakiegokolwiek legalnego ruchu.
-W klasycznych regułach nie występują remisy.
+\textbf{Breakthrough} to dwuosobowa gra strategiczna z pełną informacją,
+wynaleziona przez Dana Troyka w 2000 roku (zwycięzca konkursu 8$\times$8 Game
+Design Competition). Plansza jest kwadratowa, taka jak w szachach; każdy gracz
+dysponuje pionkami ustawionymi w dwóch pierwszych rzędach po swojej stronie.
+Ruch pionka odbywa się o jedno pole do przodu -- prosto lub po skosie. Ruch
+prosty jest możliwy wyłącznie na puste pole; ruch po skosie może być wykonany
+na pole puste lub zajęte przez pionek przeciwnika (bicie). Bicie prosto jest
+niedozwolone, a pionki nie mogą się cofać.
 
-\paragraph{Plansza 8$\times$8 (wariant klasyczny).}
-Używamy klasycznej planszy 8$\times$8 --- oryginalnego rozmiaru gry
-Breakthrough, zwycięskiego projektu konkursu 8$\times$8 Game Design
-Competition. Wybór ten motywujemy następująco:
-
+Gra kończy się zwycięstwem gracza, który:
 \begin{enumerate}[nosep]
-    \item \emph{Otwartość problemu.} Breakthrough 8$\times$8 nie został
-          rozwiązany --- nie istnieje znany ,,perfekcyjny gracz''. Dla
-          porównania, warianty do 6$\times$5 rozwiązali Saffidine i in.\
-          \cite{saffidine2011solving}, a planszę 6$\times$6 --- Björnsson i in.\
-          \cite{bjornsson2026solving} (w obu przypadkach wygrywa pierwszy
-          gracz); klasyczna 8$\times$8 pozostaje poza zasięgiem obecnych
-          solwerów, co czyni ją atrakcyjną dla badań porównawczych bez
-          znanego optimum.
-    \item \emph{Reprezentacja bitboardowa.} Plansza 8$\times$8 = 64 pola
-          mieści się dokładnie w pojedynczym \texttt{u64}, co pozwala na
-          wydajną implementację generatora ruchów (przesunięcia bitowe
-          z maskami krawędzi).
-    \item \emph{Umiarkowany branching factor.} Typowa pozycja 8$\times$8 daje
-          15--30 legalnych ruchów przy głębokości partii 40--80 ruchów ---
-          na tyle mała, by drzewo MCTS było dobrze pokrywane symulacjami,
-          a jednocześnie nietrywialna strategicznie.
+    \item doprowadzi pionek do ostatniego rzędu przeciwnika,
+    \item zbije wszystkie pionki przeciwnika,
+    \item uniemożliwi przeciwnikowi wykonanie jakiegokolwiek legalnego ruchu.
 \end{enumerate}
+Remis nie jest możliwy.
 
-\subsection{Dlaczego Breakthrough nadaje się jako benchmark MCTS}
+\subsection{Dlaczego gra Breakthrough 8$\times$8}
 
-Breakthrough spełnia pożądane charakterystyki problemu testowego dla MCTS:
-
+Gra spełnia wszystkie wymagania projektu:
 \begin{itemize}[nosep]
-    \item \emph{Pełna informacja, brak losowości.} Nie wymaga rozszerzeń typu
-          determinizacja czy POMCP --- klasyczne UCT jest bezpośrednio stosowalne.
-    \item \emph{Niebanalna strategicznie.} Mimo prostych zasad, wymaga planowania
-          na kilka ruchów naprzód: budowanie łańcuchów pionków, kontrola
-          krytycznych kolumn, poświęcenia dla osiągnięcia przełomu (stąd nazwa).
-    \item \emph{Branching factor 15--30.} Wystarczająco mały by drzewo było
-          dobrze pokrywane symulacjami, wystarczająco duży by przeszukiwanie
-          alpha-beta nie eksplodowało.
-    \item \emph{Głębokość 40--80 półruchów.} Symulacje losowe trwają $\sim$milisekundy.
-    \item \emph{Niszowość.} Mniej zbadana niż Go czy szachy --- mniejsze
-          ryzyko, że ,,wszystko już zostało zrobione''.
+    \item \textbf{Dwuosobowa, z pełną informacją, deterministyczna} -- kluczowe
+          właściwości dla metod MCTS/UCT.
+    \item \textbf{Umiarkowany branching factor} -- w typowej pozycji na planszy
+          8$\times$8 liczba legalnych ruchów wynosi 15--30. Głębokość partii to
+          40--80 ruchów.
+    \item \textbf{Proste zasady, ale trudna strategicznie} -- mimo prostych
+          zasad wymaga planowania na wiele ruchów naprzód (tworzenie łańcuchów
+          pionków, kontrola kolumn, poświęcenia pionka w celu wygranej).
+    \item \textbf{Niszowa} -- w odróżnieniu od szachów czy warcabów gra nie jest
+          aż tak popularna.
+    \item \textbf{Wariant 8$\times$8 nie został rozwiązany} -- Saffidine i in.\
+          \cite{saffidine2011solving} rozwiązali warianty do planszy 6$\times$5,
+          a Björnsson i in.\ \cite{bjornsson2026solving} rozwiązali planszę
+          6$\times$6 (w obu przypadkach wygrywa pierwszy gracz). Klasyczna
+          plansza 8$\times$8 pozostaje otwarta, co zostawia miejsce na
+          eksperymenty porównawcze bez znanego ,,perfekcyjnego gracza''.
+\end{itemize}
+
+\subsection{Cel projektu}
+
+Celem projektu jest zaprojektowanie i implementacja agentów grających
+w Breakthrough 8$\times$8 z wykorzystaniem algorytmu Monte Carlo Tree Search
+w wariancie UCT oraz jego rozszerzeń, a następnie eksperymentalne porównanie
+ich skuteczności.
+
+W szczególności projekt obejmuje:
+\begin{itemize}[nosep]
+    \item implementację bazowego algorytmu UCT,
+    \item implementację dwóch rozszerzeń UCT:
+          \begin{itemize}[nosep]
+              \item RAVE (z literatury),
+              \item Progressive Bias (z literatury),
+          \end{itemize}
+    \item implementację gracza heurystycznego (minimax alfa-beta),
+    \item porównanie jakości gry powyższych podejść,
+    \item stworzenie interfejsu człowiek--komputer i przeprowadzenie testów
+          z użytkownikami.
 \end{itemize}
 
 \subsection{Hipotezy badawcze}
 
 W projekcie weryfikujemy sześć hipotez:
 
-\begin{itemize}[nosep]
-    \item[\textbf{H1}] \emph{UCT z RAVE istotnie poprawia jakość gry względem
-          vanilla UCT przy tym samym budżecie iteracji.} Hipoteza klasyczna,
-          dobrze potwierdzona w grze Go --- testujemy jej przenośność do
-          Breakthrough.
+\begin{itemize}
+    \item[\textbf{H1}] \textbf{RAVE poprawia skuteczność względem bazowego UCT.}
+          Agent UCT rozszerzony o RAVE osiąga istotnie wyższy win-rate niż czysty
+          UCT przy tym samym budżecie iteracji.
 
-    \item[\textbf{H2}] \emph{UCT z Progressive Bias istotnie poprawia jakość
-          gry względem vanilla UCT.} Druga modyfikacja UCT, oparta na
-          wstrzykiwaniu prostej heurystyki domenowej do funkcji selekcji.
-          Wybór Progressive Bias (zamiast MAST) motywowany powiązaniem
-          z H3: ta sama funkcja heurystyczna używana w obu eksperymentach.
+    \item[\textbf{H2}] \textbf{Progressive Bias poprawia skuteczność względem
+          bazowego UCT.} Agent UCT z Progressive Bias osiąga istotnie wyższy
+          win-rate niż czysty UCT, szczególnie przy niskich budżetach iteracji.
 
-    \item[\textbf{H3}] \emph{Specjalistyczna heurystyka (alpha-beta z głębokością 5)
-          wygrywa z vanilla UCT przy niskich budżetach iteracji, lecz przegrywa
-          przy wysokich.} Klasyczny trade-off między wiedzą domenową
-          a mocą obliczeniową. Testujemy istnienie i położenie punktu
-          krzyżowania (cross-over).
+    \item[\textbf{H3}] \textbf{Heurystyka specjalistyczna przewyższa MCTS przy
+          małym budżecie iteracji, jednak przegrywa przy wysokim.} Agent minimax
+          alfa-beta z heurystyką domenową wygrywa z UCT przy małych budżetach
+          iteracji, ale przegrywa przy dużych.
 
-    \item[\textbf{H4}] \emph{Białe (pierwszy gracz) mają niewielką przewagę
-          w Breakthrough 8$\times$8 przy MCTS równej siły.} Hipoteza analogiczna
-          do obserwacji z szachów; testowana w symetrycznych meczach
-          UCT vs UCT na planszy 8$\times$8.
+    \item[\textbf{H4}] \textbf{Przewaga pierwszego gracza.} W Breakthrough
+          pierwszy gracz ma niewielką przewagę -- podobna sytuacja jak
+          w szachach.
 
-    \item[\textbf{H5}] \emph{Stała eksploracji $c$ w UCT ma nieliniowy wpływ
+    \item[\textbf{H5}] \textbf{Stała eksploracji $c$ w UCT ma nieliniowy wpływ
           na siłę gry.} Istnieje optymalna wartość $c^\star$ maksymalizująca
-          win-rate; zarówno zbyt niska (nadmierna eksploatacja), jak i zbyt
-          wysoka (nadmierna eksploracja) wartość $c$ prowadzi do spadku
-          skuteczności.
+          win-rate agenta UCT w Breakthrough 8$\times$8. Zarówno zbyt niska
+          (nadmierna eksploatacja), jak i zbyt wysoka (nadmierna eksploracja)
+          wartość $c$ prowadzi do istotnego spadku skuteczności.
 
-    \item[\textbf{H6}] \emph{Czas podejmowania decyzji MCTS zmienia się
-          w trakcie partii.} Przy stałym budżecie iteracji średni czas na ruch
-          zależy od fazy gry (numeru ruchu) --- testujemy, czy rośnie
-          w środkowej fazie gry, gdy branching factor jest największy.
+    \item[\textbf{H6}] \textbf{Czas podejmowania decyzji MCTS rośnie w środkowej
+          fazie gry.} Przy stałym budżecie iteracji średni czas na ruch agenta
+          MCTS jest najwyższy w fazie środkowej partii (ruchy 15--40), gdy
+          branching factor jest największy, i maleje w otwarciu oraz końcówce.
 \end{itemize}
 
-\subsection{Struktura raportu}
-
-Sekcja~\ref{sec:literatura} przedstawia przegląd literatury MCTS oraz
-dotychczasowych prac nad grą Breakthrough.
-Sekcja~\ref{sec:metoda} szczegółowo opisuje algorytmy każdego z agentów
-oraz architekturę implementacji.
-Sekcja~\ref{sec:eksperymenty} prezentuje plan eksperymentów ze szczegółami
-konfiguracyjnymi oraz wspólną metodologię statystyczną.
-Sekcja~\ref{sec:wyniki} zawiera wyniki eksperymentów wraz z interpretacją.
-Sekcja~\ref{sec:wnioski} podsumowuje status hipotez, ograniczenia metodologiczne
-i propozycje dalszych prac.
-Sekcja~\ref{sec:llm} dokumentuje wykorzystanie modeli językowych
-w realizacji projektu zgodnie z wymaganiami przedmiotu.

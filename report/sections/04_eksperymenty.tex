@@ -2,22 +2,18 @@
 \label{sec:eksperymenty}
 
 W tej sekcji przedstawiamy konfigurację każdego z sześciu eksperymentów
-odpowiadających hipotezom H1--H6 oraz wspólną metodologię statystyczną.
-Wszystkie eksperymenty prowadzone są na klasycznej planszy 8$\times$8.
-
+odpowiadających hipotezom H1--H6.
 \subsection{Wspólna konfiguracja}
 
 Wszystkie eksperymenty mają tę samą strukturę:
 \begin{itemize}[nosep]
-    \item \textbf{Format turnieju:} round-robin między $k$ agentami $A_1,
+    \item \textbf{Format turnieju:} każdy z każdym między $k$ agentami $A_1,
           \ldots, A_k$, gdzie każda uporządkowana para $(A_i, A_j)$ z $i \neq j$
           gra $n_{\text{games}}/2$ partii z $A_i$ jako białymi i $n_{\text{games}}/2$
           partii z $A_i$ jako czarnymi.
     \item \textbf{Master seed} (osobny dla każdego eksperymentu) $\to$ deterministycznie
-          wyprowadzony seed na partię (SHA-256 z master seeda i identyfikatora partii)
-          $\to$ seed agentów, generator ruchów w symulacji.
-    \item \textbf{Logowanie:} format JSONL, zapisywany append-only po każdej partii
-          (crash-safe). Każda linia zawiera konfiguracje obu agentów, seed, wynik,
+          wyprowadzony seed na partię.
+    \item \textbf{Logowanie:} format JSONL, zapisywany append-only po każdej partii. Każda linia zawiera konfiguracje obu agentów, seed, wynik,
           liczbę ruchów, czas decyzji każdego z graczy.
     \item \textbf{Wznawialność:} przy ponownym uruchomieniu skryptu, partie
           z identyfikatorem już obecnym w pliku JSONL są pomijane.
@@ -26,12 +22,12 @@ Wszystkie eksperymenty mają tę samą strukturę:
           sekwencyjny.}
 \end{itemize}
 
-\subsection{H1: RAVE vs vanilla UCT}
+\subsection{H1: RAVE vs bazowy UCT}
 
 \paragraph{Konfiguracja.}
 8 agentów: \{UCT, RAVE\} $\times$ \{5000, 10\,000, 50\,000, 100\,000\} iteracji.
 Stała eksploracji $c = \sqrt{2}$.
-Hiperparametr RAVE: $b^2 = 0{,}01$ (dobrany empirycznie ---
+Hiperparametr RAVE: $b^2 = 0{,}01$ (dobrany empirycznie --
 patrz sekcja~\ref{sec:llm}).
 
 \paragraph{Liczba partii.} 100 partii na parę agentów (50 na każdą stronę)
@@ -39,9 +35,9 @@ $\Rightarrow$ $\binom{8}{2} = 28$ par; łącznie 2800 partii.
 Master seed: 42.
 
 \paragraph{Oczekiwania.} Zgodnie z hipotezą H1: RAVE wygrywa z UCT
-przy każdym z testowanych budżetów (oczekiwana poprawa 5--15 pp).
+przy każdym z testowanych budżetów.
 
-\subsection{H2: Progressive Bias vs vanilla UCT}
+\subsection{H2: Progressive Bias vs bazowy UCT}
 
 \paragraph{Konfiguracja.}
 8 agentów: \{UCT, Progressive Bias\} $\times$ \{5000, 10\,000, 50\,000, 100\,000\} iteracji.
@@ -52,30 +48,28 @@ Waga bias termu: $w_{\text{bias}} = 1{,}0$.
 $\Rightarrow$ $\binom{8}{2} = 28$ par; łącznie 2800 partii. Master seed: 43.
 
 \paragraph{Oczekiwania.} Progressive Bias wygrywa z UCT przy każdym budżecie,
-z możliwie większą przewagą przy niskich budżetach (gdzie heurystyka ratuje
-brak informacji statystycznej).
+z możliwie większą przewagą przy niskich budżetach.
 
-\subsection{H3: Heurystyka vs vanilla UCT}
+\subsection{H3: Heurystyka vs bazowy UCT}
 
 \paragraph{Konfiguracja.}
 Agenci: heurystyka alpha-beta z głębokością 5 oraz UCT z budżetami
-\{500, 1000, 5000, 10\,000, 50\,000, 100\,000, 200\,000, 300\,000, 500\,000\}.
-100 partii na parę $\Rightarrow$ $\binom{10}{2} = 45$ par; łącznie 4500 partii.
+\{500, 1000, 5000, 10\,000, 50\,000, 100\,000\}. 100 partii na parę
+$\Rightarrow$ $\binom{7}{2} = 21$ par; łącznie 2100 partii.
 Master seed: 44.
 
 \paragraph{Oczekiwania.}
 Pierwsza część hipotezy: heurystyka wygrywa z UCT przy niskich budżetach
 ($\leq$ 5000 iteracji).
 Druga część: heurystyka przegrywa z UCT przy wysokich budżetach
-($\geq$ 50\,000 iteracji), istnieje wyraźny punkt krzyżowania (cross-over).
+($\geq$ 50\,000 iteracji).
 
 \subsection{H4: Przewaga pierwszego gracza}
 
 \paragraph{Konfiguracja.}
-Symetryczne mecze UCT(5000) vs UCT(5000) na planszy 8$\times$8 --- ten sam
+Symetryczne mecze UCT(5000) vs UCT(5000) na planszy 8$\times$8 -- ten sam
 agent (identyczny budżet i hiperparametry) gra jako biały i jako czarny,
-przy deterministycznie różnych seedach. Master seed: 45. Łącznie 500 partii
-(CI win-rate białych ok. $\pm$4,4 pp).
+przy deterministycznie różnych seedach. Master seed: 45. Łącznie 500 partii.
 
 \paragraph{Oczekiwania.}
 Białe (pierwszy gracz) mają niewielką, lecz istotną statystycznie przewagę
@@ -85,9 +79,7 @@ Białe (pierwszy gracz) mają niewielką, lecz istotną statystycznie przewagę
 
 \paragraph{Konfiguracja.}
 5 agentów UCT z budżetem 10\,000 iteracji, różniących się jedynie stałą
-eksploracji $c \in \{0{,}5,\ 1{,}0,\ 1{,}5,\ 2{,}0,\ 3{,}0\}$. Turniej
-round-robin (każdy $c$ przeciwko każdemu) wyłania względną siłę poszczególnych
-wartości. 100 partii na parę $\Rightarrow$ $\binom{5}{2} = 10$ par;
+eksploracji $c \in \{0{,}5,\ 1{,}0,\ 1{,}5,\ 2{,}0,\ 3{,}0\}$. 100 partii na parę $\Rightarrow$ $\binom{5}{2} = 10$ par;
 łącznie 1000 partii. Master seed: 46.
 
 \paragraph{Oczekiwania.}
@@ -108,22 +100,6 @@ Przy stałym budżecie iteracji średni czas na ruch rośnie w środkowej fazie
 gry (ruchy 15--40), gdy branching factor jest największy, i maleje w otwarciu
 oraz końcówce.
 
-\subsection{Metodologia statystyczna}
-
-\paragraph{Przedziały ufności Wilsona.}
-Dla każdej proporcji wygranych raportujemy 95\% przedział ufności metodą
-Wilsona \cite{wilson1927probable}, preferowaną nad metodą Walda dla
-proporcji bliskich 0\% lub 100\%, gdzie metoda Walda generuje przedziały
-nadmiernie wąskie i mogące wykraczać poza [0, 1]. Implementacja w \texttt{shared\_utils.py}
-wymusza dodatkowo $\text{low} \leq p \leq \text{high}$ aby uniknąć
-niepoprawnych ujemnych ,,słupków błędu'' przy proporcjach ekstremalnych
-(\verb|matplotlib| odrzuca takie wartości).
-
-\paragraph{Test rozstrzygania hipotezy.}
-Hipoteza ,,X $>$ Y'' jest uważana za potwierdzoną, jeśli 95\% CI win-rate
-agenta X w turnieju z agentem Y nie zawiera 50\%. W przeciwnym razie
-hipoteza jest sfalsyfikowana (jeśli średnia $<$ 50\%) lub uznana za
-niejednoznaczną (jeśli CI zawiera 50\%).
 
 \paragraph{Reprodukowalność.}
 Wszystkie eksperymenty są w pełni reprodukowalne. Aby powtórzyć dany
@@ -136,13 +112,4 @@ python -m breakthrough.experiments.run_h4  # H4
 python -m breakthrough.experiments.run_h5  # H5
 python -m breakthrough.experiments.run_h6  # H6
 \end{verbatim}
-Generator liczb pseudolosowych używany w MCTS i symulacjach to
-Xoshiro256++ z biblioteki \verb|rand_xoshiro| \cite{vigna2017}, seedowany
-deterministycznie z master seeda eksperymentu.
 
-\paragraph{Walidacja silnika.}
-Przed pierwszym uruchomieniem eksperymentów uruchamiany jest test
-\verb|test_rust_vs_python.py|, który gra 1000 losowych partii równolegle
-przez silnik Rust i Python, sprawdzając identyczność legalnych ruchów,
-stanu terminalnego, zwycięzcy i serializacji w każdym kroku. Niepoprawny
-silnik unieważniłby wszystkie wyniki eksperymentalne.

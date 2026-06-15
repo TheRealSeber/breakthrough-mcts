@@ -1,8 +1,5 @@
-\section{Metoda}
+\section{Metody rozwiązywania}
 \label{sec:metoda}
-
-W tej sekcji opisujemy szczegóły algorytmiczne i implementacyjne wszystkich
-agentów porównywanych w eksperymentach.
 
 \subsection{Reprezentacja stanu gry}
 
@@ -11,191 +8,74 @@ bitboardów $u_{64}$: jeden dla pionków białych, jeden dla czarnych. Bit $i$
 odpowiada polu $i = r \cdot c + k$, gdzie $r$ to numer rzędu (0-indeksowany
 od dołu), $k$ to numer kolumny, a $c$ to liczba kolumn planszy. Dla planszy
 8$\times$8 wszystkie 64 pola zajmują dokładnie całą szerokość \texttt{u64}.
-Stan gry zawiera również:
-flagę \texttt{white\_to\_move};
-licznik \texttt{move\_count};
-wartość hash Zobrist $\in \{0, \ldots, 2^{64}-1\}$ zaktualizowaną przyrostowo;
-stałe maski (lewa i prawa krawędź, plansza, rzędy zwycięskie).
-
-\paragraph{Generowanie ruchów.}
-Korzystamy z operacji bitowych z maskowaniem krawędzi przed przesunięciem,
-co eliminuje błąd ,,wraparound''. Dla białego (porusza się ku wyższym wierszom):
-\begin{align*}
-\text{prosto} &= (W \ll c) \,\&\, \text{empty} \,\&\, \text{board\_mask} \\
-\text{ukos lewy} &= ((W \,\&\, \overline{\text{left\_edge}}) \ll (c-1)) \,\&\, (\text{empty} \cup B) \,\&\, \text{board\_mask} \\
-\text{ukos prawy} &= ((W \,\&\, \overline{\text{right\_edge}}) \ll (c+1)) \,\&\, (\text{empty} \cup B) \,\&\, \text{board\_mask}
-\end{align*}
-gdzie $W$, $B$ to bitboardy białych i czarnych, $\overline{X}$ to negacja.
-Dla czarnego (przesunięcia w dół) ruchy są symetryczne, używają operatora $\gg$.
-
-\paragraph{Detekcja końca gry.}
-Cztery warunki sprawdzane w kolejności (od najtańszego do najdroższego):
-(1) biały dotarł do ostatniego rzędu;
-(2) czarny dotarł do rzędu 0;
-(3) jeden z graczy stracił wszystkie pionki;
-(4) gracz na ruchu nie ma legalnych ruchów (przegrywa).
-
-\paragraph{Hash Zobrist.}
-Tablica losowych $u_{64}$ rozmiar $2 \cdot \text{rows} \cdot \text{cols}$
-generowana raz, deterministycznie seedowana. Hash stanu = XOR wartości tablicy
-dla każdego pionka na planszy. Współdzielona przez referencję
-(\texttt{Arc<Vec<u64>>}) między wszystkimi instancjami stanu, dzięki czemu klonowanie
-\texttt{GameState} jest stałoczasowe.
 
 \paragraph{Walidacja krzyżowa.}
 Dla pewności poprawności silnika, równolegle z implementacją w Ruście została
-napisana referencyjna implementacja w czystym Pythonie (priorytet czytelności).
+napisana referencyjna implementacja w Pythonie.
 Test \texttt{test\_rust\_vs\_python.py} gra 1000 losowych partii i porównuje
 po każdym ruchu zbiory legalnych ruchów, stan terminalny, zwycięzcę i
-reprezentację tekstową. Pełna zgodność jest warunkiem koniecznym przed
-uruchomieniem eksperymentów.
+reprezentację tekstową.
 
-\subsection{Vanilla UCT (Kocsis \& Szepesvári 2006)}
+\subsection{Bazowy UCT}
 
-Klasyczny algorytm 4-fazowego MCTS \cite{kocsis2006bandit}:
+Bazowy 4-fazowy algorytm MCTS z regułą selekcji UCB1 opisaliśmy
+w sekcji~\ref{sec:literatura}; tutaj odnotowujemy szczegóły implementacyjne.
+Statystyki $\text{wins}(c)$ liczymy z perspektywy gracza, który wykonał ruch
+$c$ -- konwencja ta czyni selekcję UCB1 minimax-spójną. Symulacja jest losowa
+(uniform) do stanu terminalnego. Pula węzłów to płaska \texttt{Vec<UctNode>}
+indeksowana \texttt{usize}; węzły nie przechowują pełnego \texttt{GameState},
+lecz stan jest rekonstruowany przy schodzeniu od korzenia (koszt
+$O(\text{depth})$ tanich klonowań na iterację). Eksponowany do Pythona przez
+PyO3 jako \texttt{UctAgent(iterations, c, seed)}.
 
-\begin{enumerate}[nosep]
-    \item \textbf{Selekcja.} Począwszy od korzenia, w każdym wewnętrznym węźle
-          $s$ wybieramy potomka maksymalizującego UCB1:
-          \begin{equation}
-              \text{score}(c) = \frac{\text{wins}(c)}{\text{visits}(c)}
-                              + c_{\text{exp}} \sqrt{\frac{\ln \text{visits}(s)}{\text{visits}(c)}}
-              \label{eq:ucb1}
-          \end{equation}
-          Dla potomka z $\text{visits} = 0$ zwracamy $\infty$ (forsujemy
-          jego eksplorację).
-    \item \textbf{Ekspansja.} W węźle z nierozwiniętymi ruchami wybieramy
-          jeden losowy nierozwinięty ruch i tworzymy nowy węzeł potomny.
-    \item \textbf{Symulacja.} Od nowego węzła gramy losowo (uniform) do
-          terminala.
-    \item \textbf{Backpropagation.} Wynik symulacji przekazywany jest
-          w górę drzewa; na każdym węźle aktualizujemy:
-          $\text{visits}(n) \mathrel{{+}{=}} 1$, oraz
-          $\text{wins}(n) \mathrel{{+}{=}} 1$ jeśli wygrał gracz, który zagrał
-          ruch \emph{do} tego węzła.
-\end{enumerate}
+\subsection{UCT + RAVE}
 
-\paragraph{Konwencja perspektywy.}
-$\text{wins}(c)$ liczone jest z perspektywy gracza, który wykonał ruch $c$
-(czyli gracza znajdującego się na ruchu w rodzicu $c$). Ta konwencja
-zapewnia, że UCB1 w wzorze (\ref{eq:ucb1}) wybiera ruch dający
-maksymalne wygrane dla gracza wybierającego --- dokładnie to, czego oczekujemy
-od minimax-spójnej selekcji.
+Mechanizm RAVE/AMAF i formułę mieszającą oceny UCT z AMAF omówiliśmy
+w sekcji~\ref{sec:literatura}. Implementacyjnie każdy węzeł $s$ przechowuje
+dodatkowe statystyki AMAF w mapie kluczowanej kodem ruchu (\texttt{from*64 + to}).
+W backpropagation aktualizujemy je dla ruchów zagranych zarówno w fazie
+symulacji, jak i \emph{in-tree} poniżej węzła -- włączenie ruchów in-tree
+okazało się kluczowe; ich pominięcie w pierwszej wersji prowadziło do
+drastycznej porażki RAVE (patrz~sekcja~\ref{sec:llm}). Wagę $\beta$ wyznacza
+formuła Silvera z hiperparametrem $b^2$; klasyczna wartość $b^2 = 10^{-4}$
+okazała się nieoptymalna (zbyt silna dominacja Q-RAVE), więc po zamiataniu
+$b^2 \in \{10^{-6}, \ldots, 10^{-1}\}$ wybraliśmy $b^2 = 10^{-2}$. Eksponowany
+jako \texttt{RaveAgent(iterations, c, rave\_k, seed)}, gdzie \texttt{rave\_k}
+jest interpretowane jako $b^2$.
 
-\paragraph{Implementacja.}
-Pula węzłów to płaska \texttt{Vec<UctNode>} indeksowana \texttt{usize}
-zamiast wskaźników. Węzły nie przechowują pełnego \texttt{GameState} (oszczędność
-pamięci); stan przy schodzeniu od korzenia jest rekonstruowany przez
-ponowne aplikowanie ruchów. Cena: $O(\text{depth})$ klonowań stanu na
-iterację (akceptowalne ze względu na taniość klonowania $\sim$80B + Arc).
+\subsection{UCT + Progressive Bias}
 
-Eksponowany do Pythona przez PyO3 jako \texttt{UctAgent(iterations, c, seed)}.
-
-\subsection{UCT + RAVE (Gelly \& Silver 2011)}
-
-\paragraph{Algorytm.}
-Każdy węzeł $s$ przechowuje, oprócz statystyk UCT, dodatkowe statystyki AMAF
-(All-Moves-As-First): mapę kluczowaną kodem ruchu \texttt{from*64 + to},
-zawierającą liczbę odwiedzin $\tilde{n}(s, a)$ i wygranych $\tilde{w}(s, a)$
-dla ruchu $a$ jako pierwszego z $s$.
-
-W fazie selekcji potomek $c$ rodzica $s$ jest oceniany formułą zmieszaną
-\cite{gelly2011monte}:
-\begin{align}
-    \text{score}(c) &= (1 - \beta) Q_{\text{UCT}}(c) + \beta Q_{\text{RAVE}}(c) + c_{\text{exp}} \sqrt{\frac{\ln N(s)}{n(c)}} \label{eq:rave}\\
-    \beta(n, \tilde{n}) &= \frac{\tilde{n}}{n + \tilde{n} + 4 n \tilde{n} b^2} \label{eq:beta}
-\end{align}
-gdzie $Q_{\text{UCT}}(c) = \text{wins}(c) / \text{visits}(c)$ to ocena UCT,
-$Q_{\text{RAVE}}(c) = \tilde{w}(s, a_c) / \tilde{n}(s, a_c)$ to wartość AMAF
-ruchu $a_c$ wiodącego do $c$ (zapisana w $s$, indeksowana kodem ruchu),
-$b^2$ to hiperparametr formuły Silvera (\ref{eq:beta}).
-
-\paragraph{Aktualizacja AMAF w backpropagation.}
-Dla każdego węzła $n$ na ścieżce od korzenia do liścia: niech $p_n$ oznacza
-gracza na ruchu w $n$. Dla każdego ruchu $m$ zagranego w fazie in-tree
-\emph{poniżej} $n$ \emph{lub} w fazie symulacji, jeśli ruch wykonał gracz
-$p_n$:
-\begin{itemize}[nosep]
-    \item $\tilde{n}(n, m) \mathrel{{+}{=}} 1$,
-    \item $\tilde{w}(n, m) \mathrel{{+}{=}} 1$, jeśli $p_n$ wygrał symulację.
-\end{itemize}
-
-Włączenie ruchów in-tree (a nie tylko symulacyjnych) jest kluczowe ---
-pierwsza wersja implementacji pomijała te ruchy, prowadząc do drastycznej
-porażki RAVE w eksperymentach (patrz~sekcja~\ref{sec:llm}).
-
-\paragraph{Wybór hiperparametru $b^2$.}
-Klasyczna wartość Silvera ($b^2 = 10^{-4}$) okazała się nieoptymalna
-dla Breakthrough --- daje $\beta$ tak bliskie 1, że Q-RAVE dominuje selekcję.
-Po zamiataniu (sweep) $b^2 \in \{10^{-6}, \ldots, 10^{-1}\}$, wybraliśmy
-$b^2 = 10^{-2}$ jako najlepiej działającą wartość.
-
-Eksponowany jako \texttt{RaveAgent(iterations, c, rave\_k, seed)},
-gdzie \texttt{rave\_k} dla zachowania kompatybilności API jest interpretowane
-jako $b^2$.
-
-\subsection{UCT + Progressive Bias (Chaslot et al. 2008)}
-
-\paragraph{Algorytm.}
-Selekcja potomka rozszerza UCB1 o człon biasu malejący z liczbą odwiedzin
-\cite{chaslot2008progressive}:
-\begin{equation}
-    \text{score}(c) = Q_{\text{UCT}}(c) + c_{\text{exp}} \sqrt{\frac{\ln N(s)}{n(c)}} + w_{\text{bias}} \cdot \frac{H(c)}{n(c) + 1}
-\end{equation}
-gdzie $H(c) \in [0, 1]$ jest wartością heurystyki ruchu wiodącego do $c$,
-a $w_{\text{bias}}$ to waga biasu (= 1.0 w naszych eksperymentach).
-Człon $1/(n(c)+1)$ powoduje naturalny zanik biasu wraz ze wzrostem
-liczby symulacji --- przy rosnącej $n(c)$ statystyki Q-UCT przejmują
-sterowanie selekcją.
-
-\paragraph{Funkcja heurystyczna $H$.}
-Składnik bias dla danego ruchu wyznaczamy z heurystyki porządkowania ruchów
-$\pi(m)$ (ta sama, której używa gracz alpha-beta --- Algorytm~2), znormalizowanej
-do przedziału $[0, 1]$:
-\begin{equation}
-H(m) = \mathrm{clip}_{[0,1]}\!\left( \pi(m) / 1000 \right),
-\end{equation}
-gdzie priorytet $\pi(m)$ akumuluje się następująco: ruch wygrywający (dojście
-do ostatniego rzędu) $\to 1000$; bicie $\to +50$ oraz $+5\cdot\text{zaawansowanie}$
-zbijanego pionka; pole docelowe bronione po ruchu $\to +10$; ruch do przodu
-$\to +2\cdot\text{zaawansowanie}$ pola docelowego. Dzięki wspólnemu $\pi$ ta sama
-wiedza domenowa zasila zarówno Progressive Bias, jak i porządkowanie ruchów
-w alpha-beta.
-
-Eksponowany jako \texttt{ProgressiveBiasAgent(iterations, c, bias\_weight, seed)}.
+Formułę selekcji z malejącym członem biasu opisaliśmy w sekcji~\ref{sec:literatura}.
+Wartość heurystyczną ruchu wyznaczamy z tej samej funkcji porządkowania ruchów
+$\pi(m)$, której używa gracz alpha-beta, znormalizowanej do $[0,1]$:
+$H(m) = \mathrm{clip}_{[0,1]}(\pi(m)/1000)$. Dzięki wspólnemu $\pi$ ta sama wiedza
+domenowa zasila zarówno Progressive Bias, jak i porządkowanie ruchów w alpha-beta.
+Wagę biasu ustaliliśmy na $w_{\text{bias}} = 1{,}0$. Eksponowany jako
+\texttt{ProgressiveBiasAgent(iterations, c, bias\_weight, seed)}.
 
 \subsection{Heurystyczny gracz alpha-beta}
 
-\paragraph{Funkcja ewaluacji (Algorytm~1 konspektu).}
+\paragraph{Funkcja ewaluacj.}
 $f: \text{State} \times \text{Player} \to \mathbb{R}$, dodatnia gdy korzystna
 dla \emph{Player}. Ocena dla każdej strony sumuje wkład pojedynczych pionków
 oraz czynniki globalne; dla strony białej $v_W = \sum_p a_p \cdot (1 + 0{,}3\,d_p)
 \cdot k_p \cdot f_p \cdot g_p$, gdzie dla pionka $p$ w rzędzie $r$, kolumnie $c$:
 \begin{itemize}[nosep]
-    \item $a_p$ --- waga zaawansowania, \emph{wykładnicza} względem rzędu:
+    \item $a_p$ -- waga zaawansowania, \emph{wykładnicza} względem rzędu:
           $[1, 1, 2, 4, 8, 16, 32, 64]$ (pionek bliżej linii awansu jest
           wielokrotnie cenniejszy),
-    \item $d_p \in \{0,1,2\}$ --- liczba własnych obrońców na przekątnych za pionkiem,
-    \item $k_p$ --- bonus centralności ($1{,}15$ dla kolumn $\{3,4\}$, $1{,}05$ dla $\{2,5\}$, inaczej $1{,}0$),
-    \item $f_p$ --- $1{,}5$ przy swobodnej ścieżce awansu (brak pionka przeciwnika
+    \item $d_p \in \{0,1,2\}$ -- liczba własnych obrońców na przekątnych za pionkiem,
+    \item $k_p$ -- bonus centralności ($1{,}15$ dla kolumn $\{3,4\}$, $1{,}05$ dla $\{2,5\}$, inaczej $1{,}0$),
+    \item $f_p$ -- $1{,}5$ przy swobodnej ścieżce awansu (brak pionka przeciwnika
           w rozszerzającym się trójkącie przed pionkiem), inaczej $1{,}0$,
-    \item $g_p$ --- $0{,}8$ przy izolacji (brak własnych sąsiadów), inaczej $1{,}0$.
+    \item $g_p$ -- $0{,}8$ przy izolacji (brak własnych sąsiadów), inaczej $1{,}0$.
 \end{itemize}
 Dodatkowo grożba natychmiastowego przebicia (pionek w przedostatnim rzędzie
 z legalnym ruchem na rząd awansu) dodaje $+200$. Czynniki globalne:
 $f = (v_W - v_B) + 0{,}3 \cdot \Delta_{\text{mobilność}} + 2{,}0 \cdot \Delta_{\text{materiał}}$,
 gdzie $\Delta_{\text{mobilność}}$ to różnica liczby legalnych ruchów obu stron,
-a $\Delta_{\text{materiał}}$ --- różnica liczby pionków. Dla stanu terminalnego
+a $\Delta_{\text{materiał}}$ -- różnica liczby pionków. Dla stanu terminalnego
 zwracamy $\pm\infty$.
-
-\paragraph{Przeszukiwanie alpha-beta (Algorytmy 2--4).}
-Klasyczny negamax z odcięciem $\alpha\beta$, głębokość 5 półruchów.
-Ruchy są \emph{porządkowane} malejąco wg heurystyki $\pi(m)$ (Algorytm~2:
-ruchy wygrywające, bicia zaawansowanych pionków, ruchy bezpieczne i do przodu
-najpierw), co przyspiesza odcięcia. Dzięki wydajnej implementacji w Ruście
-wybór ruchu na planszy 8$\times$8 zajmuje $\sim$10 ms.
-
-Eksponowany jako \texttt{HeuristicAgent(depth=5)}.
 
 \subsection{Architektura implementacji}
 
@@ -223,14 +103,11 @@ breakthrough-mcts/
 \paragraph{Reprodukowalność.}
 Generator: Xoshiro256++ \cite{vigna2017}. Master seed wyprowadza
 deterministycznie seedy partii (SHA-256). Każda partia ma jawnie zapisany seed
-w logu JSONL --- możliwa pełna replikacja pojedynczej partii.
+w logu JSONL.
 
 \paragraph{Decyzja o zrównolegleniu.}
 \textbf{MCTS jest sekwencyjny}, zrównoleglenie odbywa się wyłącznie na poziomie
-batchowania eksperymentów (\texttt{ProcessPoolExecutor}). Decyzja motywowana
-czystością metodologiczną porównań --- porównujemy algorytmy, nie zrównoleglenie.
-Tree parallelization (virtual loss) ani root parallelization \emph{nie} są
-zaimplementowane.
+batchowania eksperymentów (\texttt{ProcessPoolExecutor}).
 
 \subsection{Interfejs graficzny (człowiek vs AI)}
 \label{sec:gui}
@@ -245,31 +122,29 @@ czarne lub losowo) oraz parametry agenta: budżet iteracji z presetów
 $b^2$, wagę biasu lub głębokość przeszukiwania.
 
 Podczas rozgrywki (rys.~\ref{fig:gui_play}) plansza 8$\times$8 jest renderowana
-z perspektywy gracza; kliknięcie pionka podświetla jego legalne ruchy (kropka ---
-ruch, pierścień --- bicie), a ostatni ruch jest zaznaczony. Panel boczny
+z perspektywy gracza; kliknięcie pionka podświetla jego legalne ruchy (kropka --
+ruch, pierścień -- bicie), a ostatni ruch jest zaznaczony. Panel boczny
 prezentuje konfigurację przeciwnika oraz statystyki partii na żywo: numer ruchu,
 czas gry i łączny czas namysłu obu stron. Ruch AI liczony jest w osobnym procesie
 (\texttt{ProcessPoolExecutor}), dzięki czemu interfejs pozostaje responsywny
 nawet przy dużych budżetach iteracji.
 
-Po zakończonej partii gracz wystawia ocenę trudności (skala 1--10), a całość ---
+Po zakończonej partii gracz wystawia ocenę trudności (skala 1--10), a całość --
 log ruchów z czasami namysłu oraz wiersz podsumowania (przeciwnik, wynik, kolor,
-ocena trudności) --- zapisywana jest do \texttt{results/human\_games/}. Analiza
+ocena trudności) -- zapisywana jest do \texttt{results/human\_games/}. Analiza
 zebranych partii znajduje się w sekcji~\ref{sec:wyniki-human}.
 
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.68\textwidth]{figures/gui_1}
     \caption{Ekran konfiguracji partii: wybór algorytmu przeciwnika, koloru
-    gracza i parametrów (na zrzucie: UCT, gra białymi, 10\,000 iteracji,
-    $c = \sqrt{2}$).}
+    gracza i parametrów.}
     \label{fig:gui_setup}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.92\textwidth]{figures/gui_2}
-    \caption{Widok rozgrywki: plansza 8$\times$8 (z perspektywy gracza białego)
-    oraz panel boczny z konfiguracją przeciwnika i statystykami partii na żywo.}
+    \caption{Widok rozgrywki: plansza 8$\times$8 oraz panel boczny z konfiguracją przeciwnika i statystykami partii na żywo.}
     \label{fig:gui_play}
 \end{figure}
